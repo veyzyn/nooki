@@ -7,6 +7,10 @@ export interface ServerAlert {
   title: string; detail: string; severity: 'warning' | 'error' | 'info';
 }
 export interface ActiveOperation { id: string; kind: string; phase: string; progress?: number; message: string }
+export type SharingStatus = 'offline' | 'connecting' | 'online' | 'error';
+export interface ServerSharing {
+  status: SharingStatus; address?: string | null; deviceId?: string | null; lastError?: string | null; vanity?: string | null;
+}
 export interface Server {
   id: string; name: string; type: ServerType; version: string; build: string; status: ServerStatus;
   players: number; maxPlayers: number; startedAt: number | null; memory: number; minMemory: number;
@@ -16,6 +20,7 @@ export interface Server {
   onlineMode: boolean; javaRuntimeId: string; javaRuntime: string; jvmArgs: string; history: ResourceSample[];
   alerts: ServerAlert[]; updateAvailable: { version: string; build: string; notes: string; experimental?: boolean } | null;
   lastExit?: string | null; activeOperation?: ActiveOperation | null; richManagement: boolean;
+  sharing: ServerSharing;
 }
 
 export interface Player { id: string; username: string; serverId: string; connectedAt: number; isOp: boolean; avatar: string }
@@ -31,7 +36,7 @@ export interface BackupSchedule {
   enabled: boolean; frequency: 'hourly' | 'daily' | 'weekly'; time: string; keep: number;
   weekday?: number | null; lastRunAt?: number | null; nextRunAt?: number | null;
 }
-export type ActivityKind = 'backup' | 'restart' | 'crash' | 'update' | 'start' | 'stop' | 'restore' | 'settings';
+export type ActivityKind = 'backup' | 'restart' | 'crash' | 'update' | 'start' | 'stop' | 'restore' | 'settings' | 'sharing';
 export interface ActivityEvent { id: string; kind: ActivityKind; serverId?: string | null; serverName?: string | null; at: number; message: string }
 export type LogLevel = 'info' | 'warn' | 'error';
 export interface LogLine { id: string; at: number; level: LogLevel; source: string; text: string }
@@ -44,6 +49,9 @@ export interface JavaRuntime {
 }
 export interface AppSettings {
   serverFolder: string; backupFolder: string; minimizeToTray: boolean; launchOnLogin: boolean;
+}
+export interface RelayAccess {
+  activated: boolean; activationId?: string | null; deviceId?: string | null; serversAllowed: number;
 }
 export interface HostInfo { totalMemory: number; usedMemory: number; cpu: number; diskTotal: number; diskUsed: number }
 export interface Toast { id: string; tone: 'success' | 'error' | 'warning' | 'info' | 'progress'; title: string; detail?: string; progress?: number; sticky?: boolean }
@@ -128,7 +136,7 @@ export interface ModInstallResult { mods: ModFile[]; manualDownload?: ManualModD
 export interface AppSnapshot {
   servers: Server[]; players: Player[]; rosters: Record<string, ServerRoster>; backups: Backup[];
   schedules: Record<string, BackupSchedule>; activity: ActivityEvent[]; consoleLines: Record<string, LogLine[]>;
-  settings: AppSettings; host: HostInfo; javaRuntimes: JavaRuntime[]; logSessions: LogSession[]; appVersion: string;
+  settings: AppSettings; relayAccess: RelayAccess; host: HostInfo; javaRuntimes: JavaRuntime[]; logSessions: LogSession[]; appVersion: string;
 }
 export interface VersionOption {
   id: string; version: string; build: string; releaseType: string; experimental: boolean;
@@ -169,7 +177,7 @@ export interface ImportServerInput {
 export interface ServerSettingsInput {
   name: string; motd: string; gameMode: Server['gameMode']; difficulty: Server['difficulty']; maxPlayers: number;
   pvp: boolean; whitelistEnabled: boolean; onlineMode: boolean; port: number; minMemory: number; maxMemory: number;
-  javaRuntimeId: string; jvmArgs: string;
+  javaRuntimeId: string; jvmArgs: string; vanity?: string | null;
 }
 export interface PlayerActionInput { action: 'kick' | 'ban' | 'unban' | 'whitelistAdd' | 'whitelistRemove' | 'op' | 'deop'; username: string; reason?: string | null }
 export interface ChangeSoftwareInput { version: string; build?: string | null; experimental: boolean; confirmation?: string | null }

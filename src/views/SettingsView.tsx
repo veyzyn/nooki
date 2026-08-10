@@ -7,6 +7,8 @@ import './SettingsView.css';
 export default function SettingsView() {
   const store = useStore();
   const { settings, patchSettings } = store;
+  const [activationKey, setActivationKey] = useState('');
+  const [activatingRelay, setActivatingRelay] = useState(false);
   const [javaProgress, setJavaProgress] = useState<{ progress: number; message: string; operationId?: string; cancelling?: boolean } | null>(null);
   const backupBytes = store.backups.filter((backup) => !backup.failed).reduce((total, backup) => total + backup.size, 0);
 
@@ -20,6 +22,56 @@ export default function SettingsView() {
       </div>
 
       <div className="dash-body">
+        <div className="dash-section settings-section">
+          <h2 className="section-title">Relay access</h2>
+          <div className={`settings-card relay-access-card ${store.relayAccess.activated ? 'is-active' : ''}`}>
+            <div className="relay-access-status">
+              <span className="relay-access-dot" aria-hidden="true" />
+              <div>
+                <div className="font-semibold">{store.relayAccess.activated ? 'Activated on this device' : 'Activation required'}</div>
+                <p className="text-muted text-sm">
+                  {store.relayAccess.activated
+                    ? 'One running server can use a Nooki public address. Stop it to automatically free the relay for another running server.'
+                    : 'Enter a single-use activation key to unlock one adaptive relay slot for this installation.'}
+                </p>
+              </div>
+            </div>
+            {store.relayAccess.activated ? (
+              <div className="relay-access-meta">
+                <div><span>Activation</span><strong className="mono">{store.relayAccess.activationId}</strong></div>
+                <div><span>Relay slots</span><strong>{store.relayAccess.serversAllowed} server</strong></div>
+                <div><span>Device</span><strong className="mono">{store.relayAccess.deviceId}</strong></div>
+              </div>
+            ) : (
+              <form className="relay-activation-form" onSubmit={(event) => {
+                event.preventDefault();
+                if (!activationKey.trim() || activatingRelay) return;
+                setActivatingRelay(true);
+                void store.activateRelay(activationKey).then(() => {
+                  setActivationKey('');
+                  store.pushToast({ tone: 'success', title: 'Relay activated', detail: 'One running server can now receive a public Nooki address.' });
+                }).catch((error) => {
+                  store.pushToast({ tone: 'error', title: 'Activation failed', detail: String((error as { message?: string })?.message ?? error) });
+                }).finally(() => setActivatingRelay(false));
+              }}>
+                <input
+                  className="input mono relay-activation-input"
+                  value={activationKey}
+                  onChange={(event) => setActivationKey(event.target.value.toUpperCase())}
+                  placeholder="NK-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"
+                  aria-label="Relay activation key"
+                  autoComplete="off"
+                  spellCheck={false}
+                  disabled={activatingRelay}
+                />
+                <button className="btn btn-primary" type="submit" disabled={!activationKey.trim() || activatingRelay}>
+                  {activatingRelay ? 'Activating...' : 'Activate relay'}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
         <div className="dash-section settings-section">
           <h2 className="section-title">Folders</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-5)' }}>

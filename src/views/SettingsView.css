@@ -3,6 +3,78 @@
   max-width: 680px;
 }
 
+.relay-access-card {
+  padding: var(--s-5);
+}
+
+.relay-access-card.is-active {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+}
+
+.relay-access-status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-3);
+}
+
+.relay-access-status p {
+  margin: var(--s-1) 0 0;
+  line-height: 1.5;
+}
+
+.relay-access-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 5px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.relay-access-card.is-active .relay-access-dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.relay-activation-form {
+  display: flex;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.relay-activation-input {
+  min-width: 0;
+  flex: 1;
+  text-transform: uppercase;
+}
+
+.relay-access-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.relay-access-meta div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.relay-access-meta span {
+  color: var(--text-muted);
+  font-size: var(--fs-xs);
+}
+
+.relay-access-meta strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings-toolbar {
   display: flex;
   align-items: flex-end;
@@ -148,5 +220,13 @@
   .runtime-meta {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .relay-activation-form {
+    flex-direction: column;
+  }
+
+  .relay-access-meta {
+    grid-template-columns: 1fr;
   }
 }

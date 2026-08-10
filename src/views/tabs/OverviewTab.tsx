@@ -76,7 +76,16 @@ export default function OverviewTab({ server }: { server: Server }) {
           <Fact label="Uptime" value={running ? formatUptime(server.startedAt) : '—'} />
           <Fact label="Software" value={`${softwareLabel(server.type)} ${server.version}`} />
           <Fact label="Build" value={server.build} />
-          <Fact label="Address" value={`localhost:${server.port}`} mono />
+          <Fact
+            label="Public address"
+            value={
+              !store.relayAccess.activated
+                ? 'Relay not activated'
+                : server.sharing.address ?? (running ? 'Connecting…' : 'Available when started')
+            }
+            mono
+          />
+          <Fact label="Local address" value={`localhost:${server.port}`} mono />
           <Fact label="Players" value={`${server.players} of ${server.maxPlayers}`} />
         </div>
 
@@ -135,7 +144,7 @@ export default function OverviewTab({ server }: { server: Server }) {
                 title={running ? 'Nobody is playing right now' : 'Server is not running'}
                 description={
                   running
-                    ? 'Players will show up here as they join.'
+                    ? 'Share the address above and players will show up here as they join.'
                     : 'Start the server to let players connect.'
                 }
               />

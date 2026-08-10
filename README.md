@@ -17,9 +17,10 @@ Nooki is a simple, local Minecraft server manager for Windows. It handles the re
 - Inspect and manage overworlds, dimensions, seeds, spawn points, borders, time, and weather.
 - Create, schedule, restore, and retain local backups.
 - Provision isolated local databases through Docker Desktop.
+- Use an optional activation-gated Nooki relay address for one running server at a time.
 - Manage everything without installing a Nooki companion plugin on the Minecraft server.
 
-The open-source community edition is designed for local self-hosting and does not provide hosted remote access.
+The open-source application includes the Nooki relay client, but relay access requires a single-use activation key issued by the service operator. Activation is bound to the installation identity and permits one relayed server at a time; other local servers remain fully usable without a relay address.
 
 ## Platform support
 
@@ -104,7 +105,7 @@ Never commit real credentials. Modrinth works without an API key. If a CurseForg
 
 Nooki stores its SQLite database, managed Java runtimes, temporary setup files, and archived log sessions in the Windows app-local-data directory. Minecraft servers and backup archives remain in their configured folders.
 
-Nooki does not require an account or send local server files to a cloud service.
+Nooki does not require an account or upload server files and backups. When activated relay sharing is in use, Minecraft TCP traffic for the selected running server passes through the Nooki-operated relay.
 
 ## Contributing and security
 

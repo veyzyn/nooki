@@ -526,6 +526,30 @@ pub async fn save_app_settings(
 }
 
 #[tauri::command]
+pub async fn activate_relay(
+    state: SharedState<'_>,
+    activation_key: String,
+) -> CommandResult<crate::models::RelayAccess> {
+    let access = state
+        .shares
+        .activate(&activation_key)
+        .await
+        .map_err(AppError::from)?;
+    let running = state
+        .servers
+        .read()
+        .await
+        .values()
+        .filter(|server| matches!(server.status, ServerStatus::Running))
+        .map(|server| server.id.clone())
+        .collect::<Vec<_>>();
+    for server_id in running {
+        state.shares.start(state.inner().clone(), &server_id).await;
+    }
+    Ok(access)
+}
+
+#[tauri::command]
 pub async fn reveal_path(path: String) -> CommandResult<()> {
     let target = PathBuf::from(path);
     if !target.exists() {
@@ -830,6 +854,7 @@ pub(crate) async fn create_with_overlay(
         last_exit: None,
         active_operation: None,
         rich_management,
+        sharing: Default::default(),
     };
     state.save_server(server.clone()).await?;
     let schedule = BackupSchedule::default();
@@ -1017,6 +1042,7 @@ async fn import(
         last_exit: None,
         active_operation: None,
         rich_management,
+        sharing: Default::default(),
     };
     state.save_server(server.clone()).await?;
     let schedule = BackupSchedule::default();
@@ -1471,6 +1497,7 @@ async fn save_settings(
         ));
     }
     parse_jvm_args(&input.jvm_args)?;
+    let vanity = crate::sharing::normalize_vanity(input.vanity.as_deref())?;
     if state
         .servers
         .read()
@@ -1490,6 +1517,7 @@ async fn save_settings(
         .cloned()
         .ok_or_else(|| Error::NotFound("The selected Java runtime is unavailable.".into()))?;
     let mut server = state.server(id).await?;
+    let vanity_changed = server.sharing.vanity != vanity;
     let restart_required = state.processes.is_running(id).await
         && (server.port != input.port
             || server.min_memory != input.min_memory
@@ -1531,6 +1559,16 @@ async fn save_settings(
     server.java_runtime_id = runtime.id;
     server.java_runtime = runtime.label;
     server.jvm_args = input.jvm_args;
+    server.sharing.vanity = vanity;
+    if vanity_changed {
+        server.sharing.address = None;
+        server.sharing.last_error = None;
+        server.sharing.status = if state.processes.is_running(id).await {
+            crate::models::SharingStatus::Connecting
+        } else {
+            crate::models::SharingStatus::Offline
+        };
+    }
     if restart_required
         && !server
             .alerts
@@ -1552,6 +1590,9 @@ async fn save_settings(
     state
         .activity("settings", Some(&server), "Settings updated")
         .await?;
+    if vanity_changed && state.processes.is_running(id).await {
+        state.shares.reconnect(state.clone(), id).await;
+    }
     state.server(id).await
 }
 

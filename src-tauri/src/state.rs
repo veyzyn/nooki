@@ -20,6 +20,7 @@ use crate::{
     },
     paths::normalize_path_string,
     process::ProcessManager,
+    sharing::ShareManager,
 };
 
 pub struct AppState {
@@ -37,6 +38,7 @@ pub struct AppState {
     pub runtimes: RwLock<HashMap<String, JavaRuntime>>,
     pub sessions: RwLock<HashMap<String, LogSession>>,
     pub processes: ProcessManager,
+    pub shares: ShareManager,
     pub subscriber: ParkingMutex<Option<Channel<AppEvent>>>,
     pub operation_locks: ParkingMutex<HashMap<String, Arc<Mutex<()>>>>,
     pub app_data_dir: PathBuf,
@@ -98,6 +100,9 @@ impl AppState {
                 server.memory = 0.0;
             }
             server.active_operation = None;
+            server.sharing.status = crate::models::SharingStatus::Offline;
+            server.sharing.address = None;
+            server.sharing.last_error = None;
             db.save_server(server).await?;
         }
         let mut existing_runtimes = db.load_runtimes().await?;
@@ -176,6 +181,7 @@ impl AppState {
             runtimes: RwLock::new(runtimes),
             sessions: RwLock::new(sessions),
             processes: ProcessManager::new()?,
+            shares: ShareManager::new(&app_data_dir).await?,
             subscriber: ParkingMutex::new(None),
             operation_locks: ParkingMutex::new(HashMap::new()),
             app_data_dir,
@@ -214,6 +220,7 @@ impl AppState {
         let activity = self.activity.read().await.clone();
         let console_lines = self.console_lines.read().await.clone();
         let settings = self.settings.read().await.clone();
+        let relay_access = self.shares.access().await;
         let host = self.host.read().await.clone();
         let mut java_runtimes = self
             .runtimes
@@ -240,6 +247,7 @@ impl AppState {
             activity,
             console_lines,
             settings,
+            relay_access,
             host,
             java_runtimes,
             log_sessions,

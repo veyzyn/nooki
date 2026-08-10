@@ -4,7 +4,7 @@ Thanks for helping improve Nooki.
 
 ## Before opening a change
 
-- Keep the community edition local-only.
+- Keep relay service administration, deployment secrets, and activation records out of the public repository.
 - Do not commit API keys, private keys, Minecraft worlds, backups, or generated server files.
 - Use `pnpm` for frontend dependencies and scripts.
 - Keep Windows x64 as the supported target unless a change explicitly adds and tests another platform.

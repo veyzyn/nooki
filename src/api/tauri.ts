@@ -1,6 +1,6 @@
 import { Channel, invoke } from '@tauri-apps/api/core';
 import type {
-  AppError, AppEvent, AppSettings, AppSnapshot, Backup, BackupSchedule, ChangeSoftwareInput,
+  AppError, AppEvent, AppSettings, AppSnapshot, Backup, BackupSchedule, ChangeSoftwareInput, RelayAccess,
   CreateDatabaseInput, DatabaseEnvironment, ManagedDatabase,
   WorldEntry, WorldSettingsInput,
   CreateServerInput, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, OperationEvent,
@@ -72,6 +72,7 @@ export const api = {
   readLog(sessionId: string) { return call<LogLine[]>('read_log_session', { sessionId }); },
   exportLog(sessionId: string, destination: string) { return call<void>('export_log', { sessionId, destination }); },
   saveAppSettings(settings: AppSettings) { return call<AppSettings>('save_app_settings', { settings }); },
+  activateRelay(activationKey: string) { return call<RelayAccess>('activate_relay', { activationKey }); },
   revealPath(path: string) { return call<void>('reveal_path', { path }); },
   checkUpdates() { return call<Server[]>('check_server_updates'); },
   changeSoftware(id: string, input: ChangeSoftwareInput, onProgress: (event: OperationEvent) => void) {

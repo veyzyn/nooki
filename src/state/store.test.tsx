@@ -11,7 +11,7 @@ vi.mock('../api/tauri', () => ({
     removeServer: vi.fn(), revealPath: vi.fn(), serverAction: vi.fn(), saveServerSettings: vi.fn(),
     dismissAlert: vi.fn(), sendCommand: vi.fn(), playerAction: vi.fn(), createBackup: vi.fn(),
     restoreBackup: vi.fn(), deleteBackup: vi.fn(), saveSchedule: vi.fn(), changeSoftware: vi.fn(),
-    saveAppSettings: vi.fn(), quit: vi.fn(), listLogs: vi.fn(), readLog: vi.fn(), exportLog: vi.fn(),
+    saveAppSettings: vi.fn(), activateRelay: vi.fn(), quit: vi.fn(), listLogs: vi.fn(), readLog: vi.fn(), exportLog: vi.fn(),
     detectJava: vi.fn(), installJava: vi.fn(), removeJava: vi.fn(),
     cancelOperation: vi.fn(),
   },
@@ -22,6 +22,7 @@ import { StoreProvider, useStore } from './store';
 const snapshot: AppSnapshot = {
   servers: [], players: [], rosters: {}, backups: [], schedules: {}, activity: [], consoleLines: {},
   settings: { serverFolder: 'C:\\Servers', backupFolder: 'C:\\Backups', minimizeToTray: true, launchOnLogin: false },
+  relayAccess: { activated: false, serversAllowed: 0 },
   host: { totalMemory: 16384, usedMemory: 4096, cpu: 2, diskTotal: 100000, diskUsed: 50000 },
   javaRuntimes: [], logSessions: [], appVersion: '0.1.0',
 };
@@ -33,6 +34,7 @@ const server: Server = {
   accent: '#5fb87f', motd: 'Survival', gameMode: 'survival', difficulty: 'normal', pvp: true,
   whitelistEnabled: false, onlineMode: true, javaRuntimeId: 'java-21', javaRuntime: 'Java 21', jvmArgs: '',
   history: [], alerts: [], updateAvailable: null, richManagement: true,
+  sharing: { status: 'offline', address: null, deviceId: null, lastError: null, vanity: null },
 };
 
 function Probe() {

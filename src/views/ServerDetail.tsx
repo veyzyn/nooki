@@ -55,7 +55,7 @@ export default function ServerDetail({ server }: { server: Server }) {
   const running = server.status === 'running';
   const shutdownStuck = (server.status === 'stopping' || server.status === 'restarting')
     && server.alerts.some((alert) => alert.kind === 'stop-timeout');
-  const address = `localhost:${server.port}`;
+  const address = server.sharing.address ?? `localhost:${server.port}`;
   const tabs = server.type === 'paper'
     ? [
       ...baseTabs.slice(0, 3),
@@ -104,7 +104,7 @@ export default function ServerDetail({ server }: { server: Server }) {
                 {softwareLabel(server.type)} {server.version}
               </span>
               <span className="sep">·</span>
-              <button className={`address-chip ${copied ? 'is-copied' : ''}`} onClick={copyAddress} title="Copy local address">
+              <button className={`address-chip ${copied ? 'is-copied' : ''}`} onClick={copyAddress} title={server.sharing.address ? 'Copy public address' : 'Copy local address'}>
                 <span className="mono">{address}</span>
                 <IconCopy size={12} />
               </button>

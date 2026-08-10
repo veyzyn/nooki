@@ -19,6 +19,7 @@ interface Draft {
   maxMemory: number;
   javaRuntimeId: string;
   jvmArgs: string;
+  vanity: string;
 }
 
 function draftFrom(server: Server): Draft {
@@ -36,6 +37,7 @@ function draftFrom(server: Server): Draft {
     maxMemory: server.maxMemory,
     javaRuntimeId: server.javaRuntimeId,
     jvmArgs: server.jvmArgs,
+    vanity: server.sharing.vanity ?? '',
   };
 }
 
@@ -82,6 +84,9 @@ export default function ServerSettingsTab({ server }: { server: Server }) {
     else if (draft.maxMemory > 12288) e.maxMemory = 'That is more than this computer can spare.';
 
     if (!draft.motd.trim()) e.motd = 'The message shown in the server list cannot be empty.';
+    if (draft.vanity && !/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(draft.vanity)) {
+      e.vanity = 'Use 3–32 lowercase letters, numbers, or hyphens.';
+    }
     return e;
   }, [draft, server.id, store.servers]);
 
@@ -110,6 +115,7 @@ export default function ServerSettingsTab({ server }: { server: Server }) {
       maxMemory: draft.maxMemory,
       javaRuntimeId: draft.javaRuntimeId,
       jvmArgs: draft.jvmArgs,
+      sharing: { ...server.sharing, vanity: draft.vanity || null },
     });
     store.logActivity({
       kind: 'settings',
@@ -273,6 +279,28 @@ export default function ServerSettingsTab({ server }: { server: Server }) {
             onChange={(e) => patch({ port: Number(e.target.value) })}
           />
         </Field>
+        <Field
+          label="Vanity address"
+          error={errors.vanity}
+          hint={store.relayAccess.activated
+            ? 'Optional. Without one, the public address changes each time this server starts.'
+            : 'Activate relay access in App Settings before reserving a public address.'}
+        >
+          <div className="vanity-input">
+            <input
+              className="input mono"
+              value={draft.vanity}
+              disabled={!store.relayAccess.activated}
+              maxLength={32}
+              placeholder="mycoolserver"
+              onChange={(event) => patch({ vanity: event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+            />
+            <span>.nooki-64f85d08d9.mints.wtf</span>
+          </div>
+        </Field>
+        {server.sharing.lastError && (
+          <Callout tone="warning" title="Public address unavailable">{server.sharing.lastError}</Callout>
+        )}
         {server.alerts.some((a) => a.kind === 'port-conflict') && (
           <Callout tone="warning" title="This port is in use by another program">
             Pick a different port, or close whatever else is listening on {server.port}.

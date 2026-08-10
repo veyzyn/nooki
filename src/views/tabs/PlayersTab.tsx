@@ -75,7 +75,7 @@ export default function PlayersTab({ server }: { server: Server }) {
               title={running ? 'Nobody is playing right now' : 'Server is not running'}
               description={
                 running
-                  ? `Players can join at localhost:${server.port}. They will appear here as soon as they connect.`
+                  ? `Players can join at ${server.sharing.address ?? `localhost:${server.port}`}. They will appear here as soon as they connect.`
                   : 'Start the server so players can connect.'
               }
             />

@@ -68,6 +68,26 @@ pub struct ActiveOperation {
     pub message: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SharingStatus {
+    #[default]
+    Offline,
+    Connecting,
+    Online,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct ServerSharing {
+    pub status: SharingStatus,
+    pub address: Option<String>,
+    pub device_id: Option<String>,
+    pub last_error: Option<String>,
+    pub vanity: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Server {
@@ -108,6 +128,8 @@ pub struct Server {
     pub active_operation: Option<ActiveOperation>,
     #[serde(default = "default_rich_management")]
     pub rich_management: bool,
+    #[serde(default)]
+    pub sharing: ServerSharing,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -284,6 +306,15 @@ pub struct AppSettings {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
+pub struct RelayAccess {
+    pub activated: bool,
+    pub activation_id: Option<String>,
+    pub device_id: Option<String>,
+    pub servers_allowed: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct HostInfo {
     pub total_memory: f64,
     pub used_memory: f64,
@@ -303,6 +334,7 @@ pub struct AppSnapshot {
     pub activity: Vec<ActivityEvent>,
     pub console_lines: HashMap<String, Vec<LogLine>>,
     pub settings: AppSettings,
+    pub relay_access: RelayAccess,
     pub host: HostInfo,
     pub java_runtimes: Vec<JavaRuntime>,
     pub log_sessions: Vec<LogSession>,
@@ -404,6 +436,7 @@ pub struct ServerSettingsInput {
     pub max_memory: u32,
     pub java_runtime_id: String,
     pub jvm_args: String,
+    pub vanity: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

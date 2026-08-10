@@ -351,6 +351,7 @@ async fn handle_line(state: Arc<AppState>, server_id: &str, text: String, stderr
                 let _ = state
                     .activity("start", Some(&server), "Started and ready for players")
                     .await;
+                state.shares.start(state.clone(), server_id).await;
             }
         }
     }
@@ -493,6 +494,7 @@ fn spawn_monitor(state: Arc<AppState>, server_id: String, process: ManagedProces
             }
         };
         state.processes.processes.write().await.remove(&server_id);
+        state.shares.stop_runtime(&server_id).await;
         state.players.write().await.remove(&server_id);
         state.emit(AppEvent::PlayersChanged {
             server_id: server_id.clone(),
@@ -510,6 +512,9 @@ fn spawn_monitor(state: Arc<AppState>, server_id: String, process: ManagedProces
             server.players = 0;
             server.cpu = 0.0;
             server.memory = 0.0;
+            server.sharing.status = crate::models::SharingStatus::Offline;
+            server.sharing.address = None;
+            server.sharing.last_error = None;
             server.alerts.retain(|alert| alert.kind != "stop-timeout");
             let code = exit.and_then(|status| status.code());
             if !graceful {
@@ -608,6 +613,7 @@ fn spawn_readiness_probe(state: Arc<AppState>, server_id: String, port: u16) {
                         let _ = state
                             .activity("start", Some(&server), "Started and ready for players")
                             .await;
+                        state.shares.start(state.clone(), &server_id).await;
                     }
                 }
                 break;

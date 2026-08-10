@@ -7,7 +7,7 @@ import type {
   CreateDatabaseInput, DatabaseEnvironment, ManagedDatabase,
   WorldEntry, WorldSettingsInput,
   HostInfo, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, NavView, OperationEvent,
-  ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, Player, PluginCatalog, PluginFile, Server, ServerRoster, ServerSettingsInput, ServerTab, ServerType, Toast, VersionCatalog,
+  ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, Player, PluginCatalog, PluginFile, RelayAccess, Server, ServerRoster, ServerSettingsInput, ServerTab, ServerType, Toast, VersionCatalog,
 } from '../types';
 import { uid } from '../format';
 
@@ -28,7 +28,7 @@ interface StoreValue {
   serverTab: ServerTab; setServerTab: (tab: ServerTab) => void;
   servers: Server[]; players: Player[]; rosters: Record<string, ServerRoster>; backups: Backup[];
   schedules: Record<string, BackupSchedule>; activity: ActivityEvent[]; consoleLines: Record<string, LogLine[]>;
-  settings: AppSettings; host: HostInfo; javaRuntimes: JavaRuntime[]; logSessions: LogSession[]; appVersion: string;
+  settings: AppSettings; relayAccess: RelayAccess; activateRelay: (activationKey: string) => Promise<void>; host: HostInfo; javaRuntimes: JavaRuntime[]; logSessions: LogSession[]; appVersion: string;
   refreshLogs: (serverId: string) => Promise<void>; readLog: (sessionId: string) => Promise<LogLine[]>; exportLog: (sessionId: string, destination: string) => Promise<void>;
   detectJava: () => Promise<void>; installJava: (major: number, onProgress: (event: OperationEvent) => void) => Promise<JavaRuntime>; removeJava: (id: string) => Promise<void>;
   toasts: Toast[]; dismissToast: (id: string) => void;
@@ -89,6 +89,7 @@ const emptySettings: AppSettings = {
   serverFolder: '', backupFolder: '', minimizeToTray: true, launchOnLogin: false,
 };
 const emptyHost: HostInfo = { totalMemory: 0, usedMemory: 0, cpu: 0, diskTotal: 0, diskUsed: 0 };
+const emptyRelayAccess: RelayAccess = { activated: false, serversAllowed: 0 };
 const StoreContext = createContext<StoreValue | null>(null);
 
 function errorMessage(error: unknown) {
@@ -111,6 +112,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [consoleLines, setConsoleLines] = useState<Record<string, LogLine[]>>({});
   const [settings, setSettings] = useState<AppSettings>(emptySettings);
+  const [relayAccess, setRelayAccess] = useState<RelayAccess>(emptyRelayAccess);
   const [host, setHost] = useState<HostInfo>(emptyHost);
   const [javaRuntimes, setJavaRuntimes] = useState<JavaRuntime[]>([]);
   const [logSessions, setLogSessions] = useState<LogSession[]>([]);
@@ -188,7 +190,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           merged[serverId] = [...existing, ...streamed.filter((line) => !ids.has(line.id))].slice(-2000);
         }
         return merged;
-      }); setSettings(snapshot.settings); setHost(snapshot.host);
+      }); setSettings(snapshot.settings); setRelayAccess(snapshot.relayAccess); setHost(snapshot.host);
       setJavaRuntimes(snapshot.javaRuntimes); setLogSessions(snapshot.logSessions); setAppVersion(snapshot.appVersion);
       setReady(true);
     }).catch((error: AppError) => { if (!cancelled) setInitError(error); });
@@ -218,6 +220,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       maxPlayers: changed.maxPlayers, pvp: changed.pvp, whitelistEnabled: changed.whitelistEnabled,
       onlineMode: changed.onlineMode, port: changed.port, minMemory: changed.minMemory,
       maxMemory: changed.maxMemory, javaRuntimeId: changed.javaRuntimeId, jvmArgs: changed.jvmArgs,
+      vanity: changed.sharing.vanity,
     };
     void api.saveServerSettings(id, input).then((saved) => setServers((current) => current.map((item) => item.id === id ? saved : item)))
       .catch((error) => showError('Settings were not saved', error));
@@ -272,6 +275,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const next = { ...settings, ...patch }; setSettings(next);
     void api.saveAppSettings(next).catch((error) => { setSettings(settings); showError('Application settings were not saved', error); });
   }, [settings, showError]);
+  const activateRelay = useCallback(async (activationKey: string) => {
+    const access = await api.activateRelay(activationKey);
+    setRelayAccess(access);
+  }, []);
   const logActivity = useCallback((_event: Omit<ActivityEvent, 'id' | 'at'>) => {}, []);
   const refreshLogs = useCallback(async (serverId: string) => {
     const sessions = await api.listLogs(serverId);
@@ -288,7 +295,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreValue>(() => ({
     ready, initError, retryInitialize: () => setInitAttempt((value) => value + 1),
     nav, setNav, openServerId, openServer, closeServer, serverTab, setServerTab,
-    servers, players, rosters, backups, schedules, activity, consoleLines, settings, host, javaRuntimes, logSessions, appVersion,
+    servers, players, rosters, backups, schedules, activity, consoleLines, settings, relayAccess, activateRelay, host, javaRuntimes, logSessions, appVersion,
     refreshLogs, readLog: api.readLog, exportLog: api.exportLog,
     detectJava, installJava, removeJava,
     toasts, dismissToast,
@@ -329,7 +336,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     action, createServer, importServer, removeServer,
     revealPath, patchServer, dismissAlert, sendCommand, clearConsole, playerName, playerAction, rosterName, backupFlow,
     startBackup, restoreFlow, startRestore, deleteBackup, setSchedule, updateFlow, beginUpdate, runUpdate, patchSettings,
-    restartRequired, quitDialog, wizardOpen, pushToast, updateToast, logActivity, refreshLogs, detectJava, installJava, removeJava,
+    restartRequired, quitDialog, wizardOpen, pushToast, updateToast, logActivity, refreshLogs, detectJava, installJava, removeJava, relayAccess, activateRelay,
   ]);
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

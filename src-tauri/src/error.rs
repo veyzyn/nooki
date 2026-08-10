@@ -19,6 +19,8 @@ pub enum Error {
     #[error("{0}")]
     Network(#[from] reqwest::Error),
     #[error("{0}")]
+    NetworkMessage(String),
+    #[error("{0}")]
     Archive(String),
     #[error("{0}")]
     Process(String),
@@ -48,7 +50,7 @@ impl From<Error> for AppError {
             Error::Io(_) => ("io", true),
             Error::Database(_) => ("database", false),
             Error::Json(_) => ("invalid_data", true),
-            Error::Network(_) => ("network", true),
+            Error::Network(_) | Error::NetworkMessage(_) => ("network", true),
             Error::Archive(_) => ("archive", true),
             Error::Process(_) => ("process", true),
             Error::Unsupported(_) => ("unsupported", true),

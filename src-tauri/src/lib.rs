@@ -15,6 +15,7 @@ mod plugins;
 mod process;
 mod properties;
 mod recycle;
+mod sharing;
 mod state;
 mod tasks;
 mod worlds;
@@ -151,6 +152,7 @@ pub fn run() {
             commands::read_log_session,
             commands::export_log,
             commands::save_app_settings,
+            commands::activate_relay,
             commands::reveal_path,
             commands::check_server_updates,
             commands::change_server_software,
