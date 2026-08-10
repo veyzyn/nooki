@@ -653,7 +653,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "contacts the deployed Nooki relay"]
-    async fn live_relay_accepts_a_valid_installation_proof() {
+    async fn live_relay_rejects_an_unactivated_installation() {
         let identity = SigningKey::generate(&mut OsRng);
         let server_id = format!("smoke-{}", uuid::Uuid::new_v4());
         let (mut socket, _) = connect_async(CONTROL_URL).await.unwrap();
@@ -674,13 +674,9 @@ mod tests {
             .send(Message::Text(serde_json::to_string(&auth).unwrap().into()))
             .await
             .unwrap();
-        let ready = read_relay_message(&mut socket).await.unwrap();
-        assert_eq!(ready.kind, "ready");
-        assert!(ready
-            .address
-            .unwrap()
-            .ends_with(".nooki-64f85d08d9.mints.wtf"));
-        assert_eq!(ready.device_id.unwrap().len(), 16);
+        let response = read_relay_message(&mut socket).await.unwrap();
+        assert_eq!(response.kind, "error");
+        assert!(response.message.unwrap().contains("not activated"));
     }
 
     #[test]
