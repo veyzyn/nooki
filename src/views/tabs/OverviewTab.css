@@ -1,0 +1,222 @@
+.ov-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--s-6);
+}
+
+.ov-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3) var(--s-4);
+  padding: var(--s-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  align-content: start;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fact-label {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.fact-value {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.ov-resources {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.ov-resources .progress,
+.ov-resources .progress-fill {
+  box-shadow: none;
+}
+
+.ov-resources .progress-fill::after {
+  display: none;
+}
+
+.ov-resources .progress-fill.tone-accent {
+  background: var(--accent);
+}
+
+.ov-resources .progress-fill.tone-warning {
+  background: var(--st-warning);
+}
+
+.ov-resources .progress-fill.tone-danger {
+  background: var(--st-crashed);
+}
+
+.ov-resources .progress-fill.tone-info {
+  background: var(--st-updating);
+}
+
+.ov-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+}
+
+.ov-chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  min-width: 0;
+  padding: var(--s-5);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.ov-chart-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ov-chart-head .mono {
+  color: var(--text);
+  font-size: var(--fs-lg);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.ov-lower {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-6);
+}
+
+.ov-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  min-height: 180px;
+}
+
+.ov-players {
+  display: flex;
+  flex-direction: column;
+}
+
+.ov-player {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ov-player:last-child {
+  border-bottom: none;
+}
+
+.ov-player-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ov-player-name {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.op-tag {
+  font-size: var(--fs-xs);
+  padding: 1px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.ov-player-meta {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+}
+
+.ov-player-ping {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ov-events {
+  display: flex;
+  flex-direction: column;
+}
+
+.ov-event {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.ov-event:last-child {
+  border-bottom: none;
+}
+
+.ov-event-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.dot-backup,
+.dot-restore {
+  background: var(--st-info);
+}
+
+.dot-crash {
+  background: var(--st-crashed);
+}
+
+.dot-update {
+  background: var(--st-updating);
+}
+
+.dot-start,
+.dot-restart {
+  background: var(--st-running);
+}
+
+.ov-event-msg {
+  flex: 1;
+  font-size: var(--fs-sm);
+}
+
+.ov-event-time {
+  font-size: var(--fs-xs);
+  color: var(--text-faint);
+}

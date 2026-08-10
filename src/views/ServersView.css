@@ -1,0 +1,35 @@
+.srv-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}
+
+.srv-toolbar .console-search {
+  flex: 1 1 340px;
+  max-width: 440px;
+}
+
+.srv-toolbar > .segmented {
+  margin-left: auto;
+}
+
+.server-row.needs-attention {
+  border-color: rgba(217, 106, 98, 0.25);
+  background: linear-gradient(var(--st-crashed-bg), var(--st-crashed-bg)), var(--bg-surface);
+}
+
+.alert-count {
+  font-size: var(--fs-xs);
+  padding: 2px var(--s-2);
+  border-radius: var(--r-pill);
+  background: var(--st-warning-bg);
+  color: var(--st-warning);
+  font-weight: 500;
+}
+
+.sub-danger {
+  color: var(--st-crashed);
+  font-weight: 500;
+}

@@ -1,0 +1,84 @@
+.logs-tab {
+  padding: var(--s-5) var(--s-6) var(--s-6);
+  gap: var(--s-4);
+}
+
+.logs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-shrink: 0;
+}
+
+.logs-panel {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+}
+
+.logs-head-row {
+  display: grid;
+  grid-template-columns: 180px 100px 90px 150px 1fr;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.logs-row {
+  display: grid;
+  grid-template-columns: 180px 100px 90px 150px 1fr;
+  gap: var(--s-4);
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.logs-row:last-child {
+  border-bottom: none;
+}
+
+.logs-when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.logs-date {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.logs-time {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.logs-cell {
+  font-size: var(--fs-sm);
+}
+
+.logs-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.log-viewer {
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s-3) 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: 1.65;
+}

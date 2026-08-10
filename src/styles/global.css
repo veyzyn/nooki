@@ -1,0 +1,343 @@
+@import "./tokens.css";
+@import "./reset.css";
+@import "./motion.css";
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ============================ Button system ============================ */
+
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  font-size: var(--fs-base);
+  font-weight: 550;
+  padding: 0 var(--s-4);
+  height: 34px;
+  border-radius: var(--r-sm);
+  white-space: nowrap;
+  border: 1px solid transparent;
+  user-select: none;
+  overflow: hidden;
+  letter-spacing: -0.005em;
+  transition:
+    background var(--dur) var(--ease-smooth),
+    border-color var(--dur) var(--ease-smooth),
+    color var(--dur) var(--ease-smooth),
+    box-shadow var(--dur) var(--ease-smooth),
+    transform var(--dur-fast) var(--ease-smooth);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.btn > svg {
+  flex-shrink: 0;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, var(--accent-hover), var(--accent));
+  color: var(--text-on-accent);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.2) inset,
+    0 2px 8px rgba(95, 184, 127, 0.28);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7dd39c, var(--accent-hover));
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 4px 16px rgba(95, 184, 127, 0.45);
+}
+
+.btn-primary:active:not(:disabled) {
+  background: var(--accent-press);
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  background: linear-gradient(180deg, var(--bg-surface-3), var(--bg-surface-2));
+  border-color: var(--border);
+  box-shadow: var(--sh-sm);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #262b32, var(--bg-surface-3));
+  border-color: var(--border-strong);
+  box-shadow: var(--sh-md);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.btn-ghost:active:not(:disabled) {
+  background: var(--bg-active);
+}
+
+.btn-danger {
+  background: linear-gradient(180deg, var(--danger-hover), var(--danger));
+  color: #fff;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 2px 8px rgba(230, 120, 114, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 4px 16px rgba(230, 120, 114, 0.45);
+}
+
+.btn-sm {
+  height: 28px;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-sm);
+}
+
+.btn-icon {
+  width: 34px;
+  padding: 0;
+}
+
+.btn-icon.btn-sm {
+  width: 28px;
+}
+
+/* ============================ Input system ============================= */
+
+.input,
+.select,
+.textarea {
+  display: block;
+  width: 100%;
+  padding: 0 var(--s-3);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-base);
+  color: var(--text);
+  transition:
+    border-color var(--dur) var(--ease-smooth),
+    box-shadow var(--dur) var(--ease-smooth),
+    background var(--dur) var(--ease-smooth);
+}
+
+.input,
+.select {
+  height: 36px;
+}
+
+.textarea {
+  min-height: 84px;
+  padding: var(--s-3);
+  resize: vertical;
+  font-family: var(--font-mono);
+  line-height: 1.6;
+}
+
+.select {
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% + 1px),
+    calc(100% - 11px) calc(50% + 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: var(--s-7);
+}
+
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: var(--border-strong);
+  background: #0c0f11;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--accent);
+  background: var(--bg-inset);
+  box-shadow:
+    0 0 0 3px var(--accent-ring),
+    0 0 16px rgba(95, 184, 127, 0.12);
+}
+
+/* ============================ Status badges =========================== */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 3px var(--s-3);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid transparent;
+  animation: popIn var(--dur-slow) var(--ease-spring) both;
+  transition: all var(--dur) var(--ease-smooth);
+}
+
+.status-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-running {
+  background: var(--st-running-bg);
+  color: var(--st-running);
+  border-color: rgba(82, 201, 135, 0.28);
+}
+
+.status-running::before {
+  background: var(--st-running);
+  box-shadow: 0 0 8px var(--st-running);
+}
+
+.status-stopped {
+  background: var(--st-stopped-bg);
+  color: var(--st-stopped);
+  border-color: rgba(138, 148, 160, 0.22);
+}
+
+.status-stopped::before {
+  background: var(--st-stopped);
+}
+
+.status-warning {
+  background: var(--st-warning-bg);
+  color: var(--st-warning);
+  border-color: rgba(230, 181, 99, 0.28);
+}
+
+.status-warning::before {
+  background: var(--st-warning);
+  box-shadow: 0 0 8px var(--st-warning);
+}
+
+.status-updating {
+  background: var(--st-updating-bg);
+  color: var(--st-updating);
+  border-color: rgba(107, 168, 230, 0.28);
+}
+
+.status-updating::before {
+  background: var(--st-updating);
+  box-shadow: 0 0 8px var(--st-updating);
+}
+
+.status-crashed {
+  background: var(--st-crashed-bg);
+  color: var(--st-crashed);
+  border-color: rgba(230, 120, 114, 0.3);
+}
+
+.status-crashed::before {
+  background: var(--st-crashed);
+  box-shadow: 0 0 8px var(--st-crashed);
+}
+
+.status-info {
+  background: var(--st-info-bg);
+  color: var(--st-info);
+  border-color: rgba(140, 152, 230, 0.28);
+}
+
+.status-info::before {
+  background: var(--st-info);
+}
+
+/* =============================== Cards ================================ */
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s-5);
+  box-shadow: var(--sh-inset);
+}
+
+.card-compact {
+  padding: var(--s-4);
+}
+
+/* ============================= Utilities ============================== */
+
+.text-xs {
+  font-size: var(--fs-xs);
+}
+
+.text-sm {
+  font-size: var(--fs-sm);
+}
+
+.text-md {
+  font-size: var(--fs-md);
+}
+
+.text-lg {
+  font-size: var(--fs-lg);
+}
+
+.text-xl {
+  font-size: var(--fs-xl);
+}
+
+.text-2xl {
+  font-size: var(--fs-2xl);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+.font-medium {
+  font-weight: 500;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Gradient text for headings */
+.text-gradient {
+  background: linear-gradient(135deg, var(--text) 20%, var(--text-secondary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
