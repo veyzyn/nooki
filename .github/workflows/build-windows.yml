@@ -42,6 +42,7 @@ jobs:
           if ($LASTEXITCODE -gt 1) {
             exit $LASTEXITCODE
           }
+          exit 0
 
       - name: Install pnpm and Node.js
         uses: pnpm/setup@v1
