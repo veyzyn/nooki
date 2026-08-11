@@ -27,7 +27,7 @@
 
 ---
 
-![Nooki servers dashboard](docs/images/nooki-servers.png)
+![Nooki servers dashboard](docs/images/thing2.png)
 
 ## Minecraft servers should not need a control room
 
