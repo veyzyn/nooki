@@ -27,6 +27,8 @@
 
 ---
 
+![Nooki servers dashboard](docs/images/nooki-servers.png)
+
 ## Minecraft servers should not need a control room
 
 Nooki is for people who want to host Minecraft on their own computer without spending the evening juggling Java versions, terminal windows, configuration files, and backup folders.
