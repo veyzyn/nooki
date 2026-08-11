@@ -3,10 +3,10 @@ import {
 } from 'react';
 import { api } from '../api/tauri';
 import type {
-  ActivityEvent, AppError, AppEvent, AppSettings, Backup, BackupSchedule, ChangeSoftwareInput, CreateModpackServerInput, CreateServerInput,
+  ActivityEvent, AppError, AppEvent, AppSettings, Backup, BackupSchedule, ChangeSoftwareInput, CreateEphemeralServerInput, CreateModpackServerInput, CreateServerInput,
   CreateDatabaseInput, DatabaseEnvironment, ManagedDatabase,
   WorldEntry, WorldSettingsInput,
-  HostInfo, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, NavView, OperationEvent,
+  EphemeralWorldScan, HostInfo, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, NavView, OperationEvent,
   ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, Player, PluginCatalog, PluginFile, RelayAccess, Server, ServerRoster, ServerSettingsInput, ServerTab, ServerType, Toast, VersionCatalog,
 } from '../types';
 import { uid } from '../format';
@@ -27,6 +27,7 @@ interface StoreValue {
   openServer: (id: string, tab?: ServerTab) => void; closeServer: () => void;
   serverTab: ServerTab; setServerTab: (tab: ServerTab) => void;
   servers: Server[]; players: Player[]; rosters: Record<string, ServerRoster>; backups: Backup[];
+  ephemeralServer: Server | null;
   schedules: Record<string, BackupSchedule>; activity: ActivityEvent[]; consoleLines: Record<string, LogLine[]>;
   settings: AppSettings; relayAccess: RelayAccess; activateRelay: (activationKey: string) => Promise<void>; host: HostInfo; javaRuntimes: JavaRuntime[]; logSessions: LogSession[]; appVersion: string;
   refreshLogs: (serverId: string) => Promise<void>; readLog: (sessionId: string) => Promise<LogLine[]>; exportLog: (sessionId: string, destination: string) => Promise<void>;
@@ -40,6 +41,8 @@ interface StoreValue {
   importServer: (input: ImportServerInput, onProgress: (event: OperationEvent) => void) => Promise<Server>;
   listVersions: (type: ServerType, includeExperimental: boolean) => Promise<VersionCatalog>;
   scanServerFolder: (path: string) => Promise<ImportScan>;
+  scanEphemeralWorld: (path: string) => Promise<EphemeralWorldScan>;
+  createEphemeralServer: (input: CreateEphemeralServerInput, onProgress: (event: OperationEvent) => void) => Promise<Server>;
   removeServer: (id: string, mode: 'forget' | 'recycle', confirmation?: string) => Promise<void>;
   revealPath: (path: string) => void;
   patchServer: (id: string, patch: Partial<Server>) => void; dismissAlert: (serverId: string, alertId: string) => void;
@@ -105,6 +108,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [openServerId, setOpenServerId] = useState<string | null>(null);
   const [serverTab, setServerTab] = useState<ServerTab>('overview');
   const [servers, setServers] = useState<Server[]>([]);
+  const [ephemeralServer, setEphemeralServer] = useState<Server | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [rosters, setRosters] = useState<Record<string, ServerRoster>>({});
   const [backups, setBackups] = useState<Backup[]>([]);
@@ -139,12 +143,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const onEvent = useCallback((message: AppEvent) => {
     switch (message.event) {
       case 'serverChanged':
+        if (message.data.ephemeral) {
+          setEphemeralServer(message.data);
+          break;
+        }
         setServers((current) => current.some((server) => server.id === message.data.id)
           ? current.map((server) => server.id === message.data.id ? message.data : server)
           : [...current, message.data]);
         break;
       case 'serverRemoved':
         setServers((current) => current.filter((server) => server.id !== message.data.serverId));
+        setEphemeralServer((current) => current?.id === message.data.serverId ? null : current);
         setOpenServerId((current) => current === message.data.serverId ? null : current);
         break;
       case 'consoleLine':
@@ -180,7 +189,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setReady(false); setInitError(null);
     api.initialize(onEvent).then((snapshot) => {
       if (cancelled) return;
-      setServers(snapshot.servers); setPlayers(snapshot.players); setRosters(snapshot.rosters);
+      setServers(snapshot.servers); setEphemeralServer(snapshot.ephemeralServer ?? null); setPlayers(snapshot.players); setRosters(snapshot.rosters);
       setBackups(snapshot.backups); setSchedules(snapshot.schedules); setActivity(snapshot.activity);
       setConsoleLines((current) => {
         const merged = { ...snapshot.consoleLines };
@@ -205,6 +214,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [showError]);
 
   const createServer = useCallback((input: CreateServerInput, progress: (event: OperationEvent) => void) => api.createServer(input, progress), []);
+  const createEphemeralServer = useCallback(async (input: CreateEphemeralServerInput, progress: (event: OperationEvent) => void) => {
+    const server = await api.createEphemeralServer(input, progress);
+    setEphemeralServer(server);
+    return server;
+  }, []);
   const importServer = useCallback((input: ImportServerInput, progress: (event: OperationEvent) => void) => api.importServer(input, progress), []);
   const removeServer = useCallback(async (id: string, mode: 'forget' | 'recycle', confirmation?: string) => {
     await api.removeServer(id, mode, confirmation);
@@ -295,13 +309,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreValue>(() => ({
     ready, initError, retryInitialize: () => setInitAttempt((value) => value + 1),
     nav, setNav, openServerId, openServer, closeServer, serverTab, setServerTab,
-    servers, players, rosters, backups, schedules, activity, consoleLines, settings, relayAccess, activateRelay, host, javaRuntimes, logSessions, appVersion,
+    servers, ephemeralServer, players, rosters, backups, schedules, activity, consoleLines, settings, relayAccess, activateRelay, host, javaRuntimes, logSessions, appVersion,
     refreshLogs, readLog: api.readLog, exportLog: api.exportLog,
     detectJava, installJava, removeJava,
     toasts, dismissToast,
     startServer: (id) => action(id, 'start'), stopServer: (id) => action(id, 'stop'), restartServer: (id) => action(id, 'restart'), forceStopServer: (id) => action(id, 'forceStop'),
     createServer, searchModpacks: api.searchModpacks, listModpackVersions: api.listModpackVersions,
     createModpackServer: api.createModpackServer, importServer, listVersions: api.listVersions, scanServerFolder: api.scanServerFolder,
+    scanEphemeralWorld: api.scanEphemeralWorld, createEphemeralServer,
     removeServer, revealPath, patchServer, dismissAlert, sendCommand, clearConsole,
     kickPlayer: (serverId, playerId) => { const name = playerName(serverId, playerId); if (name) playerAction(serverId, 'kick', name); },
     banPlayer: (serverId, playerId, reason) => { const name = playerName(serverId, playerId); if (name) playerAction(serverId, 'ban', name, reason); },
@@ -331,9 +346,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     patchSettings, restartRequired, setRestartRequired, quitDialog, setQuitDialog,
     quit: (force = false) => api.quit(force), wizardOpen, setWizardOpen, pushToast, updateToast, logActivity,
   }), [
-    ready, initError, nav, setNav, openServerId, openServer, closeServer, serverTab, servers, players, rosters, backups,
+    ready, initError, nav, setNav, openServerId, openServer, closeServer, serverTab, servers, ephemeralServer, players, rosters, backups,
     schedules, activity, consoleLines, settings, host, javaRuntimes, logSessions, appVersion, toasts, dismissToast,
-    action, createServer, importServer, removeServer,
+    action, createServer, createEphemeralServer, importServer, removeServer,
     revealPath, patchServer, dismissAlert, sendCommand, clearConsole, playerName, playerAction, rosterName, backupFlow,
     startBackup, restoreFlow, startRestore, deleteBackup, setSchedule, updateFlow, beginUpdate, runUpdate, patchSettings,
     restartRequired, quitDialog, wizardOpen, pushToast, updateToast, logActivity, refreshLogs, detectJava, installJava, removeJava, relayAccess, activateRelay,

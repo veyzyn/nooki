@@ -1,0 +1,14 @@
+services:
+  relay:
+    build: .
+    image: nooki-relay:local
+    restart: unless-stopped
+    network_mode: host
+    env_file: relay.env
+    volumes:
+      - ./data:/data
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

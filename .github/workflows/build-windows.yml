@@ -1,4 +1,4 @@
-name: Build community edition
+name: Build Nooki
 
 on:
   workflow_dispatch:
@@ -33,6 +33,13 @@ jobs:
             exit 1
           }
 
+          $trackedRelaySecrets = & git ls-files -- relay/relay.env relay/data
+          if ($trackedRelaySecrets) {
+            $trackedRelaySecrets | Write-Host
+            Write-Error "Production relay credentials or activation records are tracked."
+            exit 1
+          }
+
           $matches = & git grep -n -E 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY' -- .
           if ($LASTEXITCODE -eq 0) {
             $matches | Write-Host
@@ -57,6 +64,16 @@ jobs:
         run: |
           rustup toolchain install stable --profile minimal
           rustup default stable
+
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+
+      - name: Test relay service
+        working-directory: relay
+        run: go test ./...
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile

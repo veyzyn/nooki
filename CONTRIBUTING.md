@@ -4,7 +4,7 @@ Thanks for helping improve Nooki.
 
 ## Before opening a change
 
-- Keep relay service administration, deployment secrets, and activation records out of the public repository.
+- Keep production relay credentials, activation records, VPS state, and issued activation keys out of the repository.
 - Do not commit API keys, private keys, Minecraft worlds, backups, or generated server files.
 - Use `pnpm` for frontend dependencies and scripts.
 - Keep Windows x64 as the supported target unless a change explicitly adds and tests another platform.
@@ -20,6 +20,9 @@ pnpm test
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml
+Push-Location relay
+go test ./...
+Pop-Location
 ```
 
 Explain the user-facing behavior and testing performed in each pull request. Keep unrelated changes in separate pull requests.

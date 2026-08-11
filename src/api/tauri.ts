@@ -3,7 +3,7 @@ import type {
   AppError, AppEvent, AppSettings, AppSnapshot, Backup, BackupSchedule, ChangeSoftwareInput, RelayAccess,
   CreateDatabaseInput, DatabaseEnvironment, ManagedDatabase,
   WorldEntry, WorldSettingsInput,
-  CreateServerInput, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, OperationEvent,
+  CreateEphemeralServerInput, CreateServerInput, EphemeralWorldScan, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, OperationEvent,
   CreateModpackServerInput, ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, PlayerActionInput, PluginCatalog, PluginFile, Server, ServerSettingsInput, ServerType, VersionCatalog,
 } from '../types';
 
@@ -34,6 +34,10 @@ export const api = {
     return call<VersionCatalog>('list_software_versions', { serverType, includeExperimental });
   },
   scanServerFolder(path: string) { return call<ImportScan>('scan_server_folder', { path }); },
+  scanEphemeralWorld(path: string) { return call<EphemeralWorldScan>('scan_ephemeral_world', { path }); },
+  createEphemeralServer(input: CreateEphemeralServerInput, onProgress: (event: OperationEvent) => void) {
+    return call<Server>('create_ephemeral_server', { input, onProgress: progressChannel(onProgress) });
+  },
   createServer(input: CreateServerInput, onProgress: (event: OperationEvent) => void) {
     return call<Server>('create_server', { input, onProgress: progressChannel(onProgress) });
   },

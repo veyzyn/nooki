@@ -855,6 +855,7 @@ pub(crate) async fn create_with_overlay(
         active_operation: None,
         rich_management,
         sharing: Default::default(),
+        ephemeral: false,
     };
     state.save_server(server.clone()).await?;
     let schedule = BackupSchedule::default();
@@ -1043,6 +1044,7 @@ async fn import(
         active_operation: None,
         rich_management,
         sharing: Default::default(),
+        ephemeral: false,
     };
     state.save_server(server.clone()).await?;
     let schedule = BackupSchedule::default();

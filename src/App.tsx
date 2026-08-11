@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
 import ServersView from './views/ServersView';
 import BackupsView from './views/BackupsView';
+import QuickServerView from './views/SharingView';
 import SettingsView from './views/SettingsView';
 import ServerDetail from './views/ServerDetail';
 import Titlebar from './components/Titlebar';
@@ -34,6 +35,7 @@ function AppContent() {
           {store.nav === 'servers' && !selectedServer && <ServersView />}
           {store.nav === 'servers' && selectedServer && <ServerDetail server={selectedServer} />}
           {store.nav === 'backups' && <BackupsView />}
+          {store.nav === 'quick-server' && <QuickServerView />}
           {store.nav === 'settings' && <SettingsView />}
         </main>
         {store.toasts.length > 0 && (

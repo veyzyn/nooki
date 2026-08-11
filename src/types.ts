@@ -21,6 +21,7 @@ export interface Server {
   alerts: ServerAlert[]; updateAvailable: { version: string; build: string; notes: string; experimental?: boolean } | null;
   lastExit?: string | null; activeOperation?: ActiveOperation | null; richManagement: boolean;
   sharing: ServerSharing;
+  ephemeral: boolean;
 }
 
 export interface Player { id: string; username: string; serverId: string; connectedAt: number; isOp: boolean; avatar: string }
@@ -55,7 +56,7 @@ export interface RelayAccess {
 }
 export interface HostInfo { totalMemory: number; usedMemory: number; cpu: number; diskTotal: number; diskUsed: number }
 export interface Toast { id: string; tone: 'success' | 'error' | 'warning' | 'info' | 'progress'; title: string; detail?: string; progress?: number; sticky?: boolean }
-export type NavView = 'dashboard' | 'servers' | 'backups' | 'settings';
+export type NavView = 'dashboard' | 'servers' | 'backups' | 'quick-server' | 'settings';
 export type ServerTab = 'overview' | 'console' | 'players' | 'plugins' | 'mods' | 'worlds' | 'databases' | 'settings' | 'logs' | 'backups';
 
 export type DatabaseKind = 'mysql' | 'postgresql' | 'mongodb' | 'redis';
@@ -134,7 +135,7 @@ export interface ManualModDownload {
 export interface ModInstallResult { mods: ModFile[]; manualDownload?: ManualModDownload | null }
 
 export interface AppSnapshot {
-  servers: Server[]; players: Player[]; rosters: Record<string, ServerRoster>; backups: Backup[];
+  servers: Server[]; ephemeralServer?: Server | null; players: Player[]; rosters: Record<string, ServerRoster>; backups: Backup[];
   schedules: Record<string, BackupSchedule>; activity: ActivityEvent[]; consoleLines: Record<string, LogLine[]>;
   settings: AppSettings; relayAccess: RelayAccess; host: HostInfo; javaRuntimes: JavaRuntime[]; logSessions: LogSession[]; appVersion: string;
 }
@@ -148,6 +149,11 @@ export interface ImportScan {
   folder: string; valid: boolean; detectedName: string; detectedType?: ServerType | null;
   detectedVersion?: string | null; port?: number | null; eulaAccepted: boolean; candidates: JarCandidate[]; warnings: string[];
 }
+export interface EphemeralWorldScan {
+  sourcePath: string; sourceKind: 'folder' | 'zip'; worldName: string;
+  detectedVersion?: string | null; warnings: string[];
+}
+export interface CreateEphemeralServerInput { sourcePath: string; version: string }
 export interface OperationEventData { operationId: string; phase?: string; progress?: number; message: string }
 export type OperationEvent = { event: 'started' | 'progress' | 'finished'; data: OperationEventData };
 export type AppEvent =

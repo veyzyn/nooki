@@ -130,6 +130,8 @@ pub struct Server {
     pub rich_management: bool,
     #[serde(default)]
     pub sharing: ServerSharing,
+    #[serde(default)]
+    pub ephemeral: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -327,6 +329,7 @@ pub struct HostInfo {
 #[serde(rename_all = "camelCase")]
 pub struct AppSnapshot {
     pub servers: Vec<Server>,
+    pub ephemeral_server: Option<Server>,
     pub players: Vec<Player>,
     pub rosters: HashMap<String, ServerRoster>,
     pub backups: Vec<Backup>,
@@ -383,6 +386,23 @@ pub struct ImportScan {
     pub eula_accepted: bool,
     pub candidates: Vec<JarCandidate>,
     pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EphemeralWorldScan {
+    pub source_path: String,
+    pub source_kind: String,
+    pub world_name: String,
+    pub detected_version: Option<String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateEphemeralServerInput {
+    pub source_path: String,
+    pub version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

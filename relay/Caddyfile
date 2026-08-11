@@ -1,0 +1,3 @@
+nooki-64f85d08d9.mints.wtf {
+	reverse_proxy 127.0.0.1:7000
+}

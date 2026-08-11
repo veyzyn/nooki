@@ -348,9 +348,11 @@ async fn handle_line(state: Arc<AppState>, server_id: &str, text: String, stderr
                 server.status = ServerStatus::Running;
                 server.started_at = Some(now_ms());
                 let _ = state.save_server(server.clone()).await;
-                let _ = state
-                    .activity("start", Some(&server), "Started and ready for players")
-                    .await;
+                if !server.ephemeral {
+                    let _ = state
+                        .activity("start", Some(&server), "Started and ready for players")
+                        .await;
+                }
                 state.shares.start(state.clone(), server_id).await;
             }
         }
@@ -534,6 +536,10 @@ fn spawn_monitor(state: Arc<AppState>, server_id: String, process: ManagedProces
             }
             server.disk_used = directory_size(Path::new(&server.folder)).await;
             let _ = state.save_server(server.clone()).await;
+            if server.ephemeral {
+                cleanup_ephemeral_server(&state, &server).await;
+                return;
+            }
             let _ = state
                 .activity(
                     if graceful { "stop" } else { "crash" },
@@ -610,9 +616,11 @@ fn spawn_readiness_probe(state: Arc<AppState>, server_id: String, port: u16) {
                         server.status = ServerStatus::Running;
                         server.started_at = Some(now_ms());
                         let _ = state.save_server(server.clone()).await;
-                        let _ = state
-                            .activity("start", Some(&server), "Started and ready for players")
-                            .await;
+                        if !server.ephemeral {
+                            let _ = state
+                                .activity("start", Some(&server), "Started and ready for players")
+                                .await;
+                        }
                         state.shares.start(state.clone(), &server_id).await;
                     }
                 }
@@ -620,6 +628,22 @@ fn spawn_readiness_probe(state: Arc<AppState>, server_id: String, port: u16) {
             }
             tokio::time::sleep(Duration::from_millis(500)).await;
         }
+    });
+}
+
+async fn cleanup_ephemeral_server(state: &AppState, server: &crate::models::Server) {
+    let _ = state.db.delete_server(&server.id).await;
+    state.servers.write().await.remove(&server.id);
+    state.players.write().await.remove(&server.id);
+    state.rosters.write().await.remove(&server.id);
+    state.console_lines.write().await.remove(&server.id);
+    let folder = Path::new(&server.folder);
+    let ephemeral_root = state.app_data_dir.join("ephemeral");
+    if folder.starts_with(&ephemeral_root) && folder != ephemeral_root {
+        let _ = tokio::fs::remove_dir_all(folder).await;
+    }
+    state.emit(AppEvent::ServerRemoved {
+        server_id: server.id.clone(),
     });
 }
 

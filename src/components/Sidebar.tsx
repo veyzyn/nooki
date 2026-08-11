@@ -5,6 +5,7 @@ import {
   IconGrid,
   IconServer,
   IconBox,
+  IconCloud,
   IconSettings,
 } from './Icons';
 import { formatMegabytes } from '../format';
@@ -23,6 +24,7 @@ export default function Sidebar({ currentView, onNavigate }: SidebarProps) {
     { id: 'dashboard', label: 'Dashboard', icon: <IconGrid size={16} /> },
     { id: 'servers', label: 'Servers', icon: <IconServer size={16} />, badge: servers.length },
     { id: 'backups', label: 'Backups', icon: <IconBox size={16} /> },
+    { id: 'quick-server', label: 'Quick server', icon: <IconCloud size={16} /> },
     { id: 'settings', label: 'Settings', icon: <IconSettings size={16} /> },
   ];
 

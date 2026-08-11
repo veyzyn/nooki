@@ -80,10 +80,18 @@ impl AppState {
         tokio::fs::create_dir_all(&settings.server_folder).await?;
         tokio::fs::create_dir_all(&settings.backup_folder).await?;
 
-        let mut servers = db
-            .load_servers()
-            .await?
+        let ephemeral_dir = app_data_dir.join("ephemeral");
+        if ephemeral_dir.exists() {
+            tokio::fs::remove_dir_all(&ephemeral_dir).await?;
+        }
+        tokio::fs::create_dir_all(&ephemeral_dir).await?;
+        let loaded_servers = db.load_servers().await?;
+        for server in loaded_servers.iter().filter(|server| server.ephemeral) {
+            db.delete_server(&server.id).await?;
+        }
+        let mut servers = loaded_servers
             .into_iter()
+            .filter(|server| !server.ephemeral)
             .map(|server| (server.id.clone(), server))
             .collect::<HashMap<_, _>>();
         for server in servers.values_mut() {
@@ -198,6 +206,8 @@ impl AppState {
             .values()
             .cloned()
             .collect::<Vec<_>>();
+        let ephemeral_server = servers.iter().find(|server| server.ephemeral).cloned();
+        servers.retain(|server| !server.ephemeral);
         servers.sort_by_key(|server| server.name.to_lowercase());
         let players = self
             .players
@@ -240,6 +250,7 @@ impl AppState {
         log_sessions.sort_by_key(|session| std::cmp::Reverse(session.started_at));
         AppSnapshot {
             servers,
+            ephemeral_server,
             players,
             rosters,
             backups,

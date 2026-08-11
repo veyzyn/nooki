@@ -33,7 +33,7 @@ const server: Server = {
   diskUsed: 10, port: 25565, folder: 'C:\\Servers\\Survival', jarPath: 'C:\\Servers\\Survival\\server.jar',
   accent: '#5fb87f', motd: 'Survival', gameMode: 'survival', difficulty: 'normal', pvp: true,
   whitelistEnabled: false, onlineMode: true, javaRuntimeId: 'java-21', javaRuntime: 'Java 21', jvmArgs: '',
-  history: [], alerts: [], updateAvailable: null, richManagement: true,
+  history: [], alerts: [], updateAvailable: null, richManagement: true, ephemeral: false,
   sharing: { status: 'offline', address: null, deviceId: null, lastError: null, vanity: null },
 };
 

@@ -4,6 +4,7 @@ mod commands;
 mod console;
 mod databases;
 mod db;
+mod ephemeral;
 mod error;
 mod java;
 mod models;
@@ -167,6 +168,8 @@ pub fn run() {
             worlds::save_world_settings,
             worlds::regenerate_world,
             worlds::delete_world,
+            ephemeral::scan_ephemeral_world,
+            ephemeral::create_ephemeral_server,
             plugins::list_plugins,
             plugins::set_plugin_enabled,
             plugins::delete_plugin,
