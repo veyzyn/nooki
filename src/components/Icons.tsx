@@ -308,12 +308,12 @@ export const IconBlock = ({ size = 32, className = '', color = '#5fb87f' }: Icon
 );
 
 export const NookiLogo = ({ size = 28 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 28 28" fill="none">
-    <rect width="28" height="28" rx="6" fill="#5fb87f" opacity=".15"/>
-    <rect x="1" y="1" width="26" height="26" rx="5.5" stroke="#5fb87f" strokeWidth="1" opacity=".3"/>
-    {/* N letter as block-inspired shapes */}
-    <rect x="6" y="7" width="3" height="14" rx="1" fill="#5fb87f"/>
-    <rect x="19" y="7" width="3" height="14" rx="1" fill="#5fb87f"/>
-    <path d="M9 7L19 21" stroke="#5fb87f" strokeWidth="3" strokeLinecap="round"/>
-  </svg>
+  <img
+    src={new URL('../assets/nooki-logo.svg', import.meta.url).href}
+    width={size}
+    height={size}
+    alt=""
+    aria-hidden="true"
+    draggable={false}
+  />
 );

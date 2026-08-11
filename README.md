@@ -1,73 +1,105 @@
-# Nooki
+<h1 align="center">
+  <img src="src-tauri/icons/icon.png" alt="Nooki logo" width="128" height="128">
+  <br>
+  Nooki
+</h1>
 
-Nooki is a simple, local Minecraft server manager for Windows. It handles the repetitive parts of self-hosting—Java, server files, processes, configuration, worlds, mods, plugins, backups, and logs—without turning your computer into a hosting platform.
+<p align="center">
+  <strong>A friendly Minecraft server manager for Windows.</strong>
+</p>
 
-> Nooki is in early development. Expect breaking changes until the first stable release.
+<p align="center">
+  Create a server, bring your own, add mods and plugins, make backups, and keep an eye on everything from one clean desktop app.
+</p>
 
-> **Disclaimer:** everything here is vibecoded with the help of gpt 5.6 sol
+<h4 align="center">
+  <a href="https://github.com/veyzyn/nooki/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/veyzyn/nooki?style=for-the-badge&logo=github&label=Stars"></a>
+  <a href="https://github.com/veyzyn/nooki/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/veyzyn/nooki/total?style=for-the-badge&logo=github&label=Downloads"></a>
+  <a href="https://github.com/veyzyn/nooki/actions/workflows/build-windows.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/veyzyn/nooki/build-windows.yml?style=for-the-badge&logo=githubactions&label=Build"></a>
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/github/license/veyzyn/nooki?style=for-the-badge&label=License"></a>
+</h4>
 
-## Highlights
+<p align="center">
+  <a href="https://github.com/veyzyn/nooki/releases/latest">Download Nooki</a> &middot;
+  <a href="https://github.com/veyzyn/nooki/issues/new">Report a bug</a> &middot;
+  <a href="https://github.com/veyzyn/nooki/issues/new">Request a feature</a>
+</p>
 
-- Create and import Vanilla, Paper, Fabric, Forge, and NeoForge servers.
-- Install supported Java runtimes and select the right runtime for each server.
-- Start, stop, restart, and monitor multiple local servers.
-- View live console output, metrics, players, logs, and activity.
-- Browse and install Paper plugins, Modrinth mods, and CurseForge mods.
-- Create modded servers directly from Modrinth and CurseForge server packs.
-- Launch a temporary 4 GiB Quick server by dropping in a world folder or ZIP.
-- Inspect and manage overworlds, dimensions, seeds, spawn points, borders, time, and weather.
-- Create, schedule, restore, and retain local backups.
-- Provision isolated local databases through Docker Desktop.
-- Use an optional activation-gated Nooki relay address for one running server at a time.
-- Manage everything without installing a Nooki companion plugin on the Minecraft server.
+---
 
-The open-source application and relay service now live in this one repository. Access to the hosted Nooki relay still requires a single-use activation key issued by its operator. Activation is bound to the installation identity and permits one relayed server at a time; other local servers remain fully usable without a relay address.
+## Minecraft servers should not need a control room
 
-## Platform support
+Nooki is for people who want to host Minecraft on their own computer without spending the evening juggling Java versions, terminal windows, configuration files, and backup folders.
 
-Nooki currently targets Windows x64. macOS and Linux are not supported yet.
+Pick the kind of server you want, choose a Minecraft version, and Nooki takes care of the setup. Once it is running, the same app gives you the console, players, worlds, files, performance, mods, plugins, and backups you actually need.
 
-## Running requirements
+Nooki is still in early development. Things may move around, some releases may be rough, and breaking changes are possible before version 1.0.
 
-- Windows 10 or 11, x64
-- Microsoft WebView2 Runtime, which is already present on most current Windows installations
-- Enough memory and storage for the Minecraft servers you intend to run
-- An internet connection when downloading Java, server software, mods, or plugins
-- Docker Desktop only when using Nooki's Databases feature
+## What you can do
 
-Java does not need to be installed beforehand. Nooki can detect existing Java installations or download a managed runtime when a server needs one. Minecraft servers, mods, plugins, backups, and every other non-database feature run without Docker.
+- Create Vanilla, Paper, Fabric, Forge, and NeoForge servers.
+- Import Minecraft servers you already have without moving their files.
+- Build modded servers from Modrinth and CurseForge modpacks.
+- Find and install mods or Paper plugins from inside Nooki.
+- Start, stop, restart, and watch multiple servers from one dashboard.
+- Use a live console and see player activity, logs, memory use, and processor use.
+- Browse worlds and dimensions, view their seeds, and change common world settings.
+- Make backups on demand or on a schedule, then restore them when needed.
+- Drop in a world folder or ZIP to spin up a lightweight Quick server.
+- Easily create databases for servers and plugins that need one.
+- Share a server with friends using a simple Nooki address.
 
-## Download and run
+## Download
 
-Nooki is distributed as one portable `Nooki-Windows-x64.exe`; it does not require an installer.
+Nooki currently supports **64-bit Windows 10 and Windows 11**.
 
-1. Open the repository's **Releases** page.
-2. Download `Nooki-Windows-x64.exe` from the newest release.
-3. Place it anywhere you want and run it.
+1. Go to the [latest release](https://github.com/veyzyn/nooki/releases/latest).
+2. Download `Nooki-Windows-x64.exe`.
+3. Put it wherever you like and open it.
 4. Create a new server or import an existing server folder.
 
-Development builds are also available from the **Build Nooki** workflow under the repository's **Actions** tab. Open a successful run and download its artifact. GitHub may require you to sign in for Actions artifacts, and Windows SmartScreen may warn about unsigned development builds.
+Nooki is a single portable executable, so there is no installer to work through. Windows SmartScreen may show a warning while builds are unsigned.
 
-To use Databases, install and start Docker Desktop before opening the Databases tab. Nooki creates isolated local containers and persistent volumes; Minecraft itself does not run inside Docker.
+### What else do I need?
 
-## Automated builds
+- Enough memory and disk space for the servers you want to run.
+- An internet connection while downloading server files, Java, mods, or plugins.
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) only if you want to use the Databases tab.
 
-The Windows workflow can be started manually from GitHub Actions. It runs the frontend, Rust, and relay service checks, builds one portable executable, and keeps the resulting Actions artifact for 14 days. Pushing a tag such as `v0.1.0` publishes the same executable permanently on GitHub Releases.
+You do not need to install Java first. Nooki can find Java already on your computer or download the right version when it is needed. Microsoft WebView2 is also required, but it is already included with most current Windows installations.
 
-The workflow also checks for accidentally committed private keys, production relay credentials, and activation records before packaging it.
+Server sharing is currently a limited feature and requires an activation key. Everything else works without one.
 
-## Development
+## A closer look
+
+### Set up the server you actually want
+
+Start small with Vanilla or Paper, use Fabric, Forge, or NeoForge for mods, or install a complete Modrinth or CurseForge server pack. Nooki matches the server with an appropriate Java version and shows real progress while it downloads and prepares everything.
+
+### Keep day-to-day hosting simple
+
+The dashboard keeps server status and computer usage visible without getting in the way. Each server has its own focused controls for the console, players, worlds, plugins or mods, databases, settings, logs, and backups.
+
+### Recover when experiments go wrong
+
+Back up a server before changing it, keep automatic backups on a schedule, and restore an older copy from the app. Nooki stores server data on your computer, where you remain in control of it.
+
+### Start a map in a hurry
+
+Quick server is made for parkour maps, adventure maps, and short sessions. Give it a world folder or ZIP, let Nooki detect what it needs, and get straight to playing with a small, temporary server.
+
+## Build it yourself
 
 ### Requirements
 
 - Windows 10 or 11, x64
 - [Rust](https://www.rust-lang.org/tools/install) with the MSVC toolchain
 - [Node.js](https://nodejs.org/) and [pnpm](https://pnpm.io/)
-- [Go](https://go.dev/doc/install) when developing the relay service
 - Microsoft WebView2
-- Docker Desktop only if local databases are needed
+- [Go](https://go.dev/doc/install) only when working on the relay service
+- Docker Desktop only when testing databases
 
-### Run from source
+### Run Nooki from source
 
 ```powershell
 pnpm install
@@ -80,7 +112,7 @@ pnpm tauri dev
 pnpm tauri build
 ```
 
-### Run the checks
+### Run the project checks
 
 ```powershell
 pnpm build
@@ -88,40 +120,50 @@ pnpm test
 cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 cargo test --manifest-path src-tauri/Cargo.toml
+
 Push-Location relay
 go test ./...
 Pop-Location
 ```
 
-## Optional build configuration
+The [Build Nooki workflow](https://github.com/veyzyn/nooki/actions/workflows/build-windows.yml) runs the same checks and produces the portable Windows executable. Tagged versions such as `v0.1.0` are published to GitHub Releases automatically.
 
-Paper downloads require an identifying contact in Nooki's User-Agent. CurseForge browsing requires an application API key. These values are read at compile time:
+## Build configuration
+
+Official builds provide the contact information used when downloading Paper and the API key used for CurseForge. If you build Nooki yourself, place your own values in a local `.cargo/config.toml`:
 
 ```toml
-# .cargo/config.toml — keep this file local
 [env]
 NOOKI_CONTACT_URL = "your-public-support-url-or-email"
 NOOKI_CURSEFORGE_API_KEY = "your-curseforge-api-key"
 ```
 
-Never commit real credentials. Modrinth works without an API key. If a CurseForge author disables third-party downloads, Nooki opens the official download page and watches the Windows Downloads folder for the selected file.
+Keep that file local and never commit real credentials. Modrinth does not require an API key. Some CurseForge projects do not allow downloads through third-party apps; when that happens, Nooki takes you to the official download page and helps pick up the downloaded file.
 
-## Relay service
+The relay service lives in [`relay/`](relay/README.md). Its deployment guide and technical details are kept there so the main README can stay focused on the app.
 
-The activation-gated relay implementation is under [`relay/`](relay/README.md). Its source is public, while production secrets, issued activation keys, entitlements, and live VPS data remain outside Git. Publishing the protocol does not grant relay access: every tunnel must prove possession of an activated installation identity.
+## Contributing
 
-## Local data
+Bug reports, ideas, and pull requests are welcome. Have a look at [CONTRIBUTING.md](CONTRIBUTING.md) before sending a change. Please report security problems privately by following [SECURITY.md](SECURITY.md), rather than opening a public issue.
 
-Nooki stores its SQLite database, managed Java runtimes, temporary setup files, and archived log sessions in the Windows app-local-data directory. Minecraft servers and backup archives remain in their configured folders.
+If Nooki is useful to you, starring the repository is an easy way to support the project and help other self-hosters find it.
 
-Nooki does not require an account or upload server files and backups. When activated relay sharing is in use, Minecraft TCP traffic for the selected running server passes through the Nooki-operated relay.
+## Star History
 
-## Contributing and security
+<a href="https://www.star-history.com/?repos=veyzyn%2Fnooki&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=veyzyn/nooki&type=date&theme=dark&legend=top-left&sealed_token=UhcRpIE3qWoHu62rT5PmrjOWYvvpiednnesP5WEwTH3CHq5lQS611aAjdOqwOXoRVoljsnKaN0Hv0CUjSbbhKqxnQYBMV17htnVaYzQDsROaXk4KqtSNMYimIQLKrEWljab86wqGEY6e13RS21EeVVfOc-DGwHNpbVG_l5ae1ceNCFaxVsJBOMHuC1Jz" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=veyzyn/nooki&type=date&legend=top-left&sealed_token=UhcRpIE3qWoHu62rT5PmrjOWYvvpiednnesP5WEwTH3CHq5lQS611aAjdOqwOXoRVoljsnKaN0Hv0CUjSbbhKqxnQYBMV17htnVaYzQDsROaXk4KqtSNMYimIQLKrEWljab86wqGEY6e13RS21EeVVfOc-DGwHNpbVG_l5ae1ceNCFaxVsJBOMHuC1Jz" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=veyzyn/nooki&type=date&legend=top-left&sealed_token=UhcRpIE3qWoHu62rT5PmrjOWYvvpiednnesP5WEwTH3CHq5lQS611aAjdOqwOXoRVoljsnKaN0Hv0CUjSbbhKqxnQYBMV17htnVaYzQDsROaXk4KqtSNMYimIQLKrEWljab86wqGEY6e13RS21EeVVfOc-DGwHNpbVG_l5ae1ceNCFaxVsJBOMHuC1Jz" />
+ </picture>
+</a>
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Please report security issues privately using the process in [SECURITY.md](SECURITY.md), not through a public issue.
+## A note on how Nooki is made
 
-Minecraft, Minecraft artwork, and the names and marks of third-party services remain the property of their respective owners. Nooki is an independent project and is not affiliated with or endorsed by Mojang Studios, Microsoft, PaperMC, FabricMC, Forge, NeoForged, Modrinth, CurseForge, or Docker. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Everything here is vibecoded with the help of GPT-5.6 Sol. The project is still tested, reviewed, and improved like any other open-source project; the unusual part is simply how much of it was built through conversations with an AI.
+
+Minecraft and related artwork are trademarks of Mojang Studios and Microsoft. The names and marks of PaperMC, FabricMC, Forge, NeoForged, Modrinth, CurseForge, and Docker belong to their respective owners. Nooki is an independent project and is not affiliated with or endorsed by any of them. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for more information.
 
 ## License
 
-Nooki is available under the [MIT License](LICENSE).
+Nooki is open source under the [MIT License](LICENSE).

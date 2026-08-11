@@ -18,30 +18,6 @@ export default function QuickServerView() {
     return <QuickWorldSession server={store.ephemeralServer} />;
   }
 
-  if (!store.relayAccess.activated) {
-    return (
-      <div className="view">
-        <div className="view-header">
-          <div>
-            <h1 className="view-title">Quick server</h1>
-            <p className="view-subtitle">Turn a Minecraft world into a temporary server in one step</p>
-          </div>
-        </div>
-        <div className="dash-body sharing-body">
-          <section className="quick-world quick-world-locked">
-            <span className="quick-world-drop-icon"><IconCloud size={25} /></span>
-            <div>
-              <span className="quick-world-kicker">Relay access required</span>
-              <h2>Activate this device first</h2>
-              <p>Quick servers use your single public relay slot. Add an activation key in Settings before uploading a world.</p>
-            </div>
-            <button className="btn btn-primary" onClick={() => store.setNav('settings')}>Open settings</button>
-          </section>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="view">
       <div className="view-header">
@@ -57,8 +33,10 @@ export default function QuickServerView() {
         <div className="sharing-intro">
           <span className="sharing-intro-icon"><IconCloud size={20} /></span>
           <div>
-            <strong>No router setup</strong>
-            <p>Nooki detects the map version, configures a 4 GB server, and returns a temporary public address through the relay.</p>
+            <strong>{store.relayAccess.activated ? 'No router setup' : 'Ready on this computer'}</strong>
+            <p>{store.relayAccess.activated
+              ? 'Nooki detects the map version, configures a 4 GB server, and returns a temporary public address through the relay.'
+              : 'Nooki detects the map version and configures a 4 GB local server. Relay activation is only needed for a public address.'}</p>
           </div>
         </div>
       </div>
@@ -177,7 +155,7 @@ function QuickWorldDrop() {
       <div className="quick-world-heading">
         <div>
           <span className="quick-world-kicker">Quick world</span>
-          <h2>Drop in a map. Get an address.</h2>
+          <h2>Drop in a map. Start playing.</h2>
           <p>Nooki detects the version, gives the server 4 GB, and removes the temporary copy when you stop it.</p>
         </div>
         <span className="quick-world-memory">4 GB</span>
@@ -241,7 +219,10 @@ function QuickWorldSession({ server }: { server: Server }) {
   const [command, setCommand] = useState('');
   const outputRef = useRef<HTMLDivElement>(null);
   const stopping = server.status === 'stopping';
-  const address = server.sharing.address;
+  const publicAddress = server.sharing.address;
+  const address = publicAddress ?? (server.status === 'running' ? `localhost:${server.port}` : null);
+  const addressKind = publicAddress ? 'Public' : 'Local';
+  const addressState = publicAddress ? server.sharing.status : (address ? 'local' : server.sharing.status);
 
   useEffect(() => {
     if (outputRef.current) outputRef.current.scrollTop = outputRef.current.scrollHeight;
@@ -263,7 +244,7 @@ function QuickWorldSession({ server }: { server: Server }) {
     <div className="view quick-session-view">
       <div className="quick-session-head">
         <div className="quick-session-title">
-          <button className="quick-session-mark" onClick={() => address && void copy()} aria-label={address ? 'Copy public address' : undefined}>
+          <button className="quick-session-mark" onClick={() => address && void copy()} aria-label={address ? `Copy ${addressKind.toLowerCase()} address` : undefined}>
             <IconCloud size={22} />
           </button>
           <div>
@@ -279,9 +260,10 @@ function QuickWorldSession({ server }: { server: Server }) {
       </div>
 
       <div className="quick-session-body">
-        <button className={`quick-session-address state-${server.sharing.status}`} disabled={!address} onClick={() => void copy()}>
+        <button className={`quick-session-address state-${addressState}`} disabled={!address} onClick={() => void copy()}>
           <span className="quick-session-dot" />
-          <span className="mono">{address ?? relayStatus(server)}</span>
+          {address && <span className="quick-session-address-kind">{addressKind}</span>}
+          <span className="mono">{address ?? relayStatus(server, store.relayAccess.activated)}</span>
           {address && <IconCopy size={13} />}
         </button>
 
@@ -312,8 +294,9 @@ function QuickWorldSession({ server }: { server: Server }) {
   );
 }
 
-function relayStatus(server: Server) {
+function relayStatus(server: Server, relayActivated: boolean) {
   if (server.status === 'starting') return 'Starting Minecraft…';
+  if (!relayActivated) return 'Preparing local address…';
   if (server.sharing.status === 'error') return server.sharing.lastError ?? 'Relay connection failed';
   if (server.sharing.status === 'connecting') return 'Creating public address…';
   return 'Preparing public address…';

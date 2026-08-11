@@ -16,28 +16,6 @@
   overflow: hidden;
 }
 
-.quick-world-locked {
-  min-height: 260px;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: var(--s-4);
-  text-align: center;
-}
-
-.quick-world-locked > div {
-  max-width: 520px;
-}
-
-.quick-world-locked h2 {
-  margin: var(--s-2) 0;
-}
-
-.quick-world-locked p {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
 .quick-world-heading {
   display: flex;
   align-items: flex-start;
@@ -289,6 +267,14 @@
   white-space: nowrap;
 }
 
+.quick-session-address-kind {
+  color: var(--text-muted);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
 .quick-session-dot {
   width: 7px;
   height: 7px;
@@ -300,6 +286,10 @@
 .quick-session-address.state-online .quick-session-dot {
   background: var(--st-running);
   box-shadow: 0 0 8px rgba(82, 201, 135, .55);
+}
+
+.quick-session-address.state-local .quick-session-dot {
+  background: var(--st-running);
 }
 
 .quick-session-address.state-connecting .quick-session-dot {

@@ -21,6 +21,11 @@ artifacts/
 # Local build credentials
 .cargo/config.toml
 
+# Tauri icon generator output for unsupported mobile targets
+src-tauri/icons/64x64.png
+src-tauri/icons/android/
+src-tauri/icons/ios/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
