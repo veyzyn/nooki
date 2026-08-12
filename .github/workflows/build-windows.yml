@@ -19,6 +19,93 @@ permissions:
   contents: write
 
 jobs:
+  checks:
+    name: Quality checks
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Verify publishable source
+        shell: pwsh
+        run: |
+          $privatePaths = @(
+            "private",
+            "src-private",
+            ".cargo/config.toml"
+          )
+
+          $foundPaths = $privatePaths | Where-Object { Test-Path -LiteralPath $_ }
+          if ($foundPaths) {
+            Write-Error "Private-edition files are present: $($foundPaths -join ', ')"
+            exit 1
+          }
+
+          $trackedRelaySecrets = & git ls-files -- relay/relay.env relay/data
+          if ($trackedRelaySecrets) {
+            $trackedRelaySecrets | Write-Host
+            Write-Error "Production relay credentials or activation records are tracked."
+            exit 1
+          }
+
+          $matches = & git grep -n -E 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY' -- .
+          if ($LASTEXITCODE -eq 0) {
+            $matches | Write-Host
+            Write-Error "A private key or build credential appears to be committed."
+            exit 1
+          }
+          if ($LASTEXITCODE -gt 1) {
+            exit $LASTEXITCODE
+          }
+          exit 0
+
+      - name: Install pnpm and Node.js
+        uses: pnpm/setup@v1
+        with:
+          version: 11
+          runtime: node@24
+          cache: true
+          install: false
+
+      - name: Install Rust
+        shell: pwsh
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Restore Rust dependency cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: relay/go.mod
+          cache-dependency-path: relay/go.sum
+
+      - name: Test relay service
+        working-directory: relay
+        run: go test ./...
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run frontend checks
+        shell: pwsh
+        run: |
+          pnpm build
+          pnpm test
+
+      - name: Run Rust checks
+        shell: pwsh
+        run: |
+          cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+          cargo test --manifest-path src-tauri/Cargo.toml
+
   windows-portable:
     name: Windows x64 portable
     runs-on: windows-latest
@@ -74,31 +161,14 @@ jobs:
           rustup toolchain install stable --profile minimal
           rustup default stable
 
-      - name: Install Go
-        uses: actions/setup-go@v6
+      - name: Restore Rust dependency cache
+        uses: Swatinem/rust-cache@v2
         with:
-          go-version-file: relay/go.mod
-          cache-dependency-path: relay/go.sum
-
-      - name: Test relay service
-        working-directory: relay
-        run: go test ./...
+          workspaces: src-tauri -> target
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Run frontend checks
-        shell: pwsh
-        run: |
-          pnpm build
-          pnpm test
-
-      - name: Run Rust checks
-        shell: pwsh
-        run: |
-          cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
-          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-          cargo test --manifest-path src-tauri/Cargo.toml
 
       - name: Build portable executable
         shell: pwsh
@@ -120,54 +190,67 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
+          name: Nooki-Windows-x64
           path: artifacts/Nooki-Windows-x64.exe
-          archive: false
+          compression-level: 0
           retention-days: 14
 
+  publish-release:
+    name: Publish release
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    needs:
+      - checks
+      - windows-portable
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Windows executable
+        uses: actions/download-artifact@v7
+        with:
+          name: Nooki-Windows-x64
+          path: artifacts
+
       - name: Publish development release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: pwsh
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = "development"
-          $repository = $env:GITHUB_REPOSITORY
-          $sha = $env:GITHUB_SHA
-          $asset = "artifacts/Nooki-Windows-x64.exe"
+          tag="development"
+          repository="$GITHUB_REPOSITORY"
+          sha="$GITHUB_SHA"
+          asset="artifacts/Nooki-Windows-x64.exe"
 
-          gh api "repos/$repository/git/ref/tags/$tag" 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0) {
-            gh api --method PATCH "repos/$repository/git/refs/tags/$tag" -f sha=$sha -F force=true | Out-Null
-          } else {
-            gh api --method POST "repos/$repository/git/refs" -f ref="refs/tags/$tag" -f sha=$sha | Out-Null
-          }
+          if gh api "repos/$repository/git/ref/tags/$tag" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/$repository/git/refs/tags/$tag" -f sha="$sha" -F force=true >/dev/null
+          else
+            gh api --method POST "repos/$repository/git/refs" -f ref="refs/tags/$tag" -f sha="$sha" >/dev/null
+          fi
 
-          $notes = @"
-          Automatic Windows build from the latest commit on ``main``.
+          notes=$(cat <<EOF
+          Automatic Windows build from the latest commit on \`main\`.
 
           Commit: [$sha](https://github.com/$repository/commit/$sha)
 
           This is a development build and may be less stable than a versioned release.
-          "@
+          EOF
+          )
 
-          gh release view $tag 2>$null | Out-Null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag $asset --clobber
-            gh release edit $tag --title "Nooki Development Build" --notes $notes --prerelease
-          } else {
-            gh release create $tag $asset --verify-tag --title "Nooki Development Build" --notes $notes --prerelease
-          }
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber
+            gh release edit "$tag" --title "Nooki Development Build" --notes "$notes" --prerelease
+          else
+            gh release create "$tag" "$asset" --verify-tag --title "Nooki Development Build" --notes "$notes" --prerelease
+          fi
 
       - name: Publish tagged release
         if: startsWith(github.ref, 'refs/tags/v')
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $tag = $env:GITHUB_REF_NAME
-          gh release view $tag 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag artifacts/Nooki-Windows-x64.exe --clobber
-          } else {
-            gh release create $tag artifacts/Nooki-Windows-x64.exe --verify-tag --generate-notes --title "Nooki $tag"
-          }
+          tag="$GITHUB_REF_NAME"
+          asset="artifacts/Nooki-Windows-x64.exe"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber
+          else
+            gh release create "$tag" "$asset" --verify-tag --generate-notes --title "Nooki $tag"
+          fi
