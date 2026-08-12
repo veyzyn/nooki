@@ -128,7 +128,7 @@ go test ./...
 Pop-Location
 ```
 
-The [Build Nooki workflow](https://github.com/veyzyn/nooki/actions/workflows/build-windows.yml) runs the same checks and produces the portable Windows executable. Tagged versions such as `v0.1.0` are published to GitHub Releases automatically.
+The [Build Nooki workflow](https://github.com/veyzyn/nooki/actions/workflows/build-windows.yml) runs these checks and produces a downloadable Windows executable for every push to `main` and every pull request. Tagged versions such as `v0.1.0` are published to GitHub Releases automatically.
 
 ## Build configuration
 

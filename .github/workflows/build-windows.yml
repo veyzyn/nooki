@@ -2,9 +2,18 @@ name: Build Nooki
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
+    branches:
+      - main
     tags:
       - "v*"
+
+concurrency:
+  group: build-nooki-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -94,7 +103,7 @@ jobs:
       - name: Build portable executable
         shell: pwsh
         env:
-          BUILD_CONTACT: ${{ vars.NOOKI_CONTACT_URL }}
+          BUILD_CONTACT: ${{ vars.NOOKI_CONTACT_URL || 'nooki@mints.wtf' }}
           BUILD_CURSEFORGE_KEY: ${{ secrets.NOOKI_CURSEFORGE_API_KEY }}
         run: |
           if ($env:BUILD_CONTACT) {
