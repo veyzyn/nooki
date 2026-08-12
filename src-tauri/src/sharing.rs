@@ -474,7 +474,7 @@ async fn set_status(
 ) {
     if let Ok(mut server) = state.server(server_id).await {
         server.sharing.status = status;
-        if matches!(server.sharing.status, SharingStatus::Offline) {
+        if !matches!(server.sharing.status, SharingStatus::Online) {
             server.sharing.address = None;
         }
         if address.is_some() {

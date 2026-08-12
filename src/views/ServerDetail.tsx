@@ -4,7 +4,6 @@ import { useStore } from '../state/store';
 import type { Server, ServerTab } from '../types';
 import {
   IconArrowLeft,
-  IconBlock,
   IconBox,
   IconCopy,
   IconDatabase,
@@ -17,6 +16,7 @@ import {
   IconTerminal,
   IconUsers,
 } from '../components/Icons';
+import ServerIcon from '../components/ServerIcon';
 import { ConfirmDialog, Spinner } from '../components/ui';
 import { isBusy, softwareLabel, statusLabels, statusTone } from '../format';
 import OverviewTab from './tabs/OverviewTab';
@@ -53,6 +53,7 @@ export default function ServerDetail({ server }: { server: Server }) {
     || (store.restoreFlow?.serverId === server.id && (store.restoreFlow.phase === 'safety' || store.restoreFlow.phase === 'restoring'))
     || (store.updateFlow?.serverId === server.id && !['confirm', 'done', 'failed'].includes(store.updateFlow.phase));
   const running = server.status === 'running';
+  const starting = server.status === 'starting';
   const shutdownStuck = (server.status === 'stopping' || server.status === 'restarting')
     && server.alerts.some((alert) => alert.kind === 'stop-timeout');
   const address = server.sharing.address ?? `localhost:${server.port}`;
@@ -89,7 +90,7 @@ export default function ServerDetail({ server }: { server: Server }) {
 
         <div className="detail-identity">
           <div className="detail-icon">
-            <IconBlock size={48} color={server.accent} />
+            <ServerIcon server={server} size={48} />
           </div>
           <div className="detail-titles">
             <div className="detail-name-row">
@@ -128,12 +129,14 @@ export default function ServerDetail({ server }: { server: Server }) {
                 Start server
               </button>
             )}
-            {running && (
+            {(running || starting) && (
               <>
-                <button className="btn btn-secondary" disabled={busy || operationBusy} onClick={() => store.restartServer(server.id)}>
-                  Restart
-                </button>
-                <button className="btn btn-secondary" disabled={busy || operationBusy} onClick={() => setConfirmStop(true)}>
+                {running && (
+                  <button className="btn btn-secondary" disabled={operationBusy} onClick={() => store.restartServer(server.id)}>
+                    Restart
+                  </button>
+                )}
+                <button className="btn btn-secondary" disabled={operationBusy} onClick={() => setConfirmStop(true)}>
                   Stop
                 </button>
               </>
@@ -181,11 +184,13 @@ export default function ServerDetail({ server }: { server: Server }) {
       <ConfirmDialog
         open={confirmStop}
         title={`Stop ${server.name}?`}
-        description="Everyone currently playing will be disconnected."
+        description={starting ? 'Nooki will stop Java even though Minecraft has not finished starting.' : 'Everyone currently playing will be disconnected.'}
         confirmLabel="Stop server"
         tone="danger"
         notes={
-          server.players > 0
+          starting
+            ? ['If Minecraft does not exit within 60 seconds, you can force stop it.']
+            : server.players > 0
             ? [`${server.players} player${server.players !== 1 ? 's are' : ' is'} online right now.`, 'The world is saved before stopping.']
             : ['The world is saved before stopping.']
         }

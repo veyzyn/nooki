@@ -228,6 +228,7 @@ async fn create(
         folder: path_string(&final_folder),
         jar_path: path_string(&final_folder.join("server.jar")),
         accent: "#5fb87f".into(),
+        icon_data: None,
         motd: "Temporary world shared with Nooki".into(),
         game_mode: "adventure".into(),
         difficulty: "peaceful".into(),

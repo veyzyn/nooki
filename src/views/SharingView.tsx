@@ -5,7 +5,7 @@ import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { IconCloud, IconCopy } from '../components/Icons';
 import { Select, Spinner } from '../components/ui';
 import { formatClock } from '../format';
-import { useStore } from '../state/store';
+import { useConsoleLines, useStore } from '../state/store';
 import type { EphemeralWorldScan, OperationEvent, Server, VersionOption } from '../types';
 import './SharingView.css';
 
@@ -215,7 +215,7 @@ function QuickWorldDrop() {
 
 function QuickWorldSession({ server }: { server: Server }) {
   const store = useStore();
-  const lines = store.consoleLines[server.id] ?? [];
+  const lines = useConsoleLines(server.id);
   const [command, setCommand] = useState('');
   const outputRef = useRef<HTMLDivElement>(null);
   const stopping = server.status === 'stopping';

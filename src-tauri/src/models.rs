@@ -110,6 +110,8 @@ pub struct Server {
     pub folder: String,
     pub jar_path: String,
     pub accent: String,
+    #[serde(default)]
+    pub icon_data: Option<String>,
     pub motd: String,
     pub game_mode: String,
     pub difficulty: String,
@@ -420,6 +422,8 @@ pub struct CreateServerInput {
     pub eula: bool,
     pub java_runtime_id: Option<String>,
     #[serde(default)]
+    pub icon_data: Option<String>,
+    #[serde(default)]
     pub experimental: bool,
 }
 
@@ -438,6 +442,8 @@ pub struct ImportServerInput {
     pub port: u16,
     pub eula: bool,
     pub java_runtime_id: Option<String>,
+    #[serde(default)]
+    pub icon_data: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -621,6 +627,13 @@ pub enum OperationEvent {
 #[allow(clippy::large_enum_variant)]
 pub enum AppEvent {
     ServerChanged(Server),
+    ServerMetrics {
+        server_id: String,
+        cpu: f32,
+        memory: f64,
+        disk_used: f64,
+        sample: ResourceSample,
+    },
     ServerRemoved {
         server_id: String,
     },
@@ -676,6 +689,27 @@ mod event_serialization_tests {
         assert_eq!(value["event"], "consoleLine");
         assert_eq!(value["data"]["serverId"], "server-1");
         assert!(value["data"].get("server_id").is_none());
+    }
+
+    #[test]
+    fn server_metrics_use_frontend_casing() {
+        let value = serde_json::to_value(AppEvent::ServerMetrics {
+            server_id: "server-1".into(),
+            cpu: 12.5,
+            memory: 1024.0,
+            disk_used: 2048.0,
+            sample: ResourceSample {
+                at: 10,
+                cpu: 12.5,
+                memory: 25.0,
+                players: 1,
+            },
+        })
+        .unwrap();
+
+        assert_eq!(value["event"], "serverMetrics");
+        assert_eq!(value["data"]["serverId"], "server-1");
+        assert_eq!(value["data"]["diskUsed"], 2048.0);
     }
 
     #[test]

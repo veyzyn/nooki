@@ -16,13 +16,18 @@ pub fn spawn_background_tasks(state: Arc<AppState>) {
 fn spawn_metrics(state: Arc<AppState>) {
     tauri::async_runtime::spawn(async move {
         let mut tick = 0u32;
+        // sysinfo calculates process CPU from the difference between refreshes.
+        // Keep one process table alive so readings after the first tick are real.
+        let mut system = sysinfo::System::new_all();
         loop {
-            tokio::time::sleep(Duration::from_secs(2)).await;
-            let host = sample_host();
-            *state.host.write().await = host.clone();
-            state.emit(AppEvent::HostMetrics(host));
-            let mut system = sysinfo::System::new_all();
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            if tick.is_multiple_of(2) {
+                let host = sample_host();
+                *state.host.write().await = host.clone();
+                state.emit(AppEvent::HostMetrics(host));
+            }
             system.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
+            let logical_cpu_count = system.cpus().len().max(1);
             let ids = state
                 .servers
                 .read()
@@ -32,17 +37,21 @@ fn spawn_metrics(state: Arc<AppState>) {
                 .collect::<Vec<_>>();
             for id in ids {
                 let Some(pid) = state.processes.pid(&id).await else {
-                    if tick.is_multiple_of(30) {
-                        if let Ok(mut server) = state.server(&id).await {
-                            server.disk_used =
+                    if tick.is_multiple_of(60) {
+                        if let Ok(server) = state.server(&id).await {
+                            let disk_used =
                                 crate::state::directory_size(std::path::Path::new(&server.folder))
                                     .await;
-                            state
-                                .servers
-                                .write()
-                                .await
-                                .insert(id.clone(), server.clone());
-                            state.emit(AppEvent::ServerChanged(server));
+                            let changed = {
+                                let mut servers = state.servers.write().await;
+                                servers.get_mut(&id).map(|current| {
+                                    current.disk_used = disk_used;
+                                    current.clone()
+                                })
+                            };
+                            if let Some(changed) = changed {
+                                state.emit(AppEvent::ServerChanged(changed));
+                            }
                         }
                     }
                     continue;
@@ -68,57 +77,85 @@ fn spawn_metrics(state: Arc<AppState>) {
                     }
                     tree.extend(children);
                 }
-                let cpu = tree
+                let raw_cpu = tree
                     .iter()
                     .filter_map(|process_id| system.process(*process_id))
                     .map(|process| process.cpu_usage())
                     .sum::<f32>();
+                let cpu = normalize_process_cpu(raw_cpu, logical_cpu_count);
                 let memory = tree
                     .iter()
                     .filter_map(|process_id| system.process(*process_id))
                     .map(|process| process.memory())
                     .sum::<u64>();
-                if let Ok(mut server) = state.server(&id).await {
-                    server.cpu = cpu;
-                    server.memory = memory as f64 / 1_048_576.0;
+                if let Ok(server) = state.server(&id).await {
                     let sample_at = now_ms();
-                    let sample_due = server
-                        .history
-                        .last()
-                        .is_none_or(|sample| sample_at.saturating_sub(sample.at) >= 60_000);
-                    if sample_due {
-                        server.disk_used =
+                    let disk_used = if tick.is_multiple_of(60) {
+                        Some(
                             crate::state::directory_size(std::path::Path::new(&server.folder))
-                                .await;
-                        let memory_pct = if server.max_memory == 0 {
-                            0.0
-                        } else {
-                            (server.memory / server.max_memory as f64 * 100.0) as f32
-                        };
-                        server.history.push(ResourceSample {
-                            at: sample_at,
-                            cpu: server.cpu,
-                            memory: memory_pct,
-                            players: server.players,
-                        });
-                        // Keep the complete session time range without allowing very long-running
-                        // servers to grow IPC snapshots forever. Once the chart gets dense, halve
-                        // its resolution; step_by retains both the session's first and newest point.
-                        if server.history.len() > 2_048 {
-                            server.history = server.history.iter().step_by(2).cloned().collect();
-                        }
+                                .await,
+                        )
+                    } else {
+                        None
+                    };
+                    if !state.processes.is_running(&id).await {
+                        continue;
                     }
-                    state
-                        .servers
-                        .write()
-                        .await
-                        .insert(id.clone(), server.clone());
-                    state.emit(AppEvent::ServerChanged(server));
+                    let metrics = {
+                        let mut servers = state.servers.write().await;
+                        servers.get_mut(&id).map(|current| {
+                            current.cpu = cpu;
+                            current.memory = memory as f64 / 1_048_576.0;
+                            if let Some(disk_used) = disk_used {
+                                current.disk_used = disk_used;
+                            }
+                            let memory_pct = if current.max_memory == 0 {
+                                0.0
+                            } else {
+                                (current.memory / current.max_memory as f64 * 100.0) as f32
+                            };
+                            let sample = ResourceSample {
+                                at: sample_at,
+                                cpu: current.cpu,
+                                memory: memory_pct,
+                                players: current.players,
+                            };
+                            let cutoff = sample_at.saturating_sub(3_600_000);
+                            current.history.retain(|item| item.at >= cutoff);
+                            current.history.push(sample.clone());
+                            (current.memory, current.disk_used, sample)
+                        })
+                    };
+                    if let Some((memory, disk_used, sample)) = metrics {
+                        state.emit(AppEvent::ServerMetrics {
+                            server_id: id.clone(),
+                            cpu,
+                            memory,
+                            disk_used,
+                            sample,
+                        });
+                    }
                 }
             }
             tick = tick.wrapping_add(1);
         }
     });
+}
+
+fn normalize_process_cpu(raw_cpu: f32, logical_cpu_count: usize) -> f32 {
+    (raw_cpu / logical_cpu_count.max(1) as f32).clamp(0.0, 100.0)
+}
+
+#[cfg(test)]
+mod metric_tests {
+    use super::normalize_process_cpu;
+
+    #[test]
+    fn process_cpu_is_normalized_to_whole_machine_usage() {
+        assert_eq!(normalize_process_cpu(800.0, 16), 50.0);
+        assert_eq!(normalize_process_cpu(20.0, 0), 20.0);
+        assert_eq!(normalize_process_cpu(2_000.0, 8), 100.0);
+    }
 }
 
 fn spawn_scheduler(state: Arc<AppState>) {

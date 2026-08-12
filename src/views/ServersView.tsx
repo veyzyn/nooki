@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
+import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useStore } from '../state/store';
 import type { Server, ServerStatus } from '../types';
-import { IconBlock, IconPlus, IconSearch, IconServer, IconX, IconDots } from '../components/Icons';
+import { IconPlus, IconSearch, IconServer, IconX, IconDots, IconCopy } from '../components/Icons';
+import ServerIcon from '../components/ServerIcon';
 import { EmptyState, Field, Menu, Modal, Segmented, Sparkline, Spinner, ConfirmDialog } from '../components/ui';
 import { formatMegabytes, formatUptime, isBusy, softwareLabel, statusLabels, statusTone } from '../format';
 import AddServerWizard from './AddServerWizard';
@@ -18,6 +20,8 @@ export default function ServersView() {
   const [confirmStop, setConfirmStop] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<{ id: string; mode: 'forget' | 'recycle' } | null>(null);
   const [removeConfirmation, setRemoveConfirmation] = useState('');
+  const [removing, setRemoving] = useState(false);
+  const [copiedRemovalName, setCopiedRemovalName] = useState(false);
 
   const visible = useMemo(() => {
     return servers.filter((s) => {
@@ -34,6 +38,28 @@ export default function ServersView() {
 
   const stopTarget = servers.find((s) => s.id === confirmStop);
   const removalServer = servers.find((s) => s.id === removeTarget?.id);
+
+  const copyRemovalName = () => {
+    if (!removalServer) return;
+    void writeText(removalServer.name).then(() => {
+      setCopiedRemovalName(true);
+      window.setTimeout(() => setCopiedRemovalName(false), 1400);
+    }).catch((error) => store.pushToast({ tone: 'error', title: 'Name was not copied', detail: String(error) }));
+  };
+
+  const recycleServer = async () => {
+    if (!removalServer || removeConfirmation !== removalServer.name || removing) return;
+    setRemoving(true);
+    try {
+      await store.removeServer(removalServer.id, 'recycle', removeConfirmation);
+      setRemoveTarget(null);
+      setRemoveConfirmation('');
+    } catch (error) {
+      store.pushToast({ tone: 'error', title: 'Server was not removed', detail: String((error as { message?: string })?.message ?? error) });
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   return (
     <div className="view">
@@ -112,7 +138,7 @@ export default function ServersView() {
         ) : (
           <div className="server-list">
             {visible.map((server) => (
-              <ServerCard key={server.id} server={server} onRequestStop={() => setConfirmStop(server.id)} onRemove={(mode) => { setRemoveTarget({ id: server.id, mode }); setRemoveConfirmation(''); }} />
+              <ServerCard key={server.id} server={server} onRequestStop={() => setConfirmStop(server.id)} onRemove={(mode) => { setRemoveTarget({ id: server.id, mode }); setRemoveConfirmation(''); setCopiedRemovalName(false); }} />
             ))}
           </div>
         )}
@@ -121,11 +147,15 @@ export default function ServersView() {
       <ConfirmDialog
         open={stopTarget !== undefined}
         title={`Stop ${stopTarget?.name}?`}
-        description="Everyone currently playing will be disconnected."
+        description={stopTarget?.status === 'starting'
+          ? 'Nooki will stop Java even though Minecraft has not finished starting.'
+          : 'Everyone currently playing will be disconnected.'}
         confirmLabel="Stop server"
         tone="danger"
         notes={
-          stopTarget && stopTarget.players > 0
+          stopTarget?.status === 'starting'
+            ? ['If Minecraft does not exit within 60 seconds, you can force stop it.']
+            : stopTarget && stopTarget.players > 0
             ? [`${stopTarget.players} player${stopTarget.players !== 1 ? 's are' : ' is'} online.`, 'The world is saved first.']
             : ['The world is saved first.']
         }
@@ -146,10 +176,40 @@ export default function ServersView() {
         onConfirm={() => { if (removalServer) void store.removeServer(removalServer.id, 'forget').catch((error) => store.pushToast({ tone: 'error', title: 'Server was not removed', detail: String((error as { message?: string })?.message ?? error) })); setRemoveTarget(null); }}
       />
 
-      <Modal open={removeTarget?.mode === 'recycle' && Boolean(removalServer)} onClose={() => setRemoveTarget(null)} title={`Move ${removalServer?.name} to the Recycle Bin?`} description="This removes the exact registered server folder. External backups are kept." tone="danger" width={500} footer={<><button className="btn btn-secondary" onClick={() => setRemoveTarget(null)}>Cancel</button><button className="btn btn-danger" disabled={removeConfirmation !== removalServer?.name} onClick={() => { if (!removalServer) return; void store.removeServer(removalServer.id, 'recycle', removeConfirmation).catch((error) => store.pushToast({ tone: 'error', title: 'Server was not removed', detail: String((error as { message?: string })?.message ?? error) })); setRemoveTarget(null); }}>Move to Recycle Bin</button></>}>
-        <div className="stack-sm">
-          <div className="mono text-sm">{removalServer?.folder}</div>
-          <Field label={`Type ${removalServer?.name ?? ''} to confirm`}><input className="input" value={removeConfirmation} onChange={(event) => setRemoveConfirmation(event.target.value)} /></Field>
+      <Modal
+        open={removeTarget?.mode === 'recycle' && Boolean(removalServer)}
+        onClose={() => { if (!removing) setRemoveTarget(null); }}
+        dismissable={!removing}
+        title="Move server files to the Recycle Bin?"
+        description="The exact registered folder will be removed from this computer. External backups are kept."
+        tone="danger"
+        width={520}
+        footer={<>
+          <button className="btn btn-secondary" disabled={removing} onClick={() => setRemoveTarget(null)}>Cancel</button>
+          <button className="btn btn-danger" disabled={removeConfirmation !== removalServer?.name || removing} onClick={() => void recycleServer()}>
+            {removing && <Spinner size={12} />}{removing ? 'Moving files…' : 'Move to Recycle Bin'}
+          </button>
+        </>}
+      >
+        <div className="recycle-confirm">
+          <div className="recycle-path-block">
+            <span>Folder being removed</span>
+            <code title={removalServer?.folder}>{removalServer?.folder}</code>
+          </div>
+          <div className="recycle-confirm-copy">
+            <div>
+              <strong>Confirm the server name</strong>
+              <span>Copy the exact name, then type it below.</span>
+            </div>
+            <button className={`recycle-name-chip ${copiedRemovalName ? 'is-copied' : ''}`} type="button" onClick={copyRemovalName} title="Copy server name">
+              <span>{removalServer?.name}</span>
+              <IconCopy size={13} />
+              <em>{copiedRemovalName ? 'Copied' : 'Copy'}</em>
+            </button>
+          </div>
+          <Field label="Server name">
+            <input className="input" autoFocus value={removeConfirmation} onChange={(event) => setRemoveConfirmation(event.target.value)} placeholder="Type the server name exactly" disabled={removing} />
+          </Field>
         </div>
       </Modal>
 
@@ -165,6 +225,8 @@ function ServerCard({ server, onRequestStop, onRemove }: { server: Server; onReq
     || (store.restoreFlow?.serverId === server.id && (store.restoreFlow.phase === 'safety' || store.restoreFlow.phase === 'restoring'))
     || (store.updateFlow?.serverId === server.id && !['confirm', 'done', 'failed'].includes(store.updateFlow.phase));
   const running = server.status === 'running';
+  const starting = server.status === 'starting';
+  const removable = server.status === 'stopped' || server.status === 'crashed';
   const attention = server.status === 'crashed' || server.alerts.some((a) => a.severity !== 'info');
   const storedCpu = server.history.map((sample) => sample.cpu);
   const cpuHistory = [...storedCpu.slice(0, -1), server.cpu];
@@ -185,7 +247,7 @@ function ServerCard({ server, onRequestStop, onRemove }: { server: Server; onReq
       }}
     >
       <div className="server-row-icon">
-        <IconBlock size={40} color={server.accent} />
+        <ServerIcon server={server} size={40} />
       </div>
 
       <div className="server-row-main">
@@ -253,12 +315,14 @@ function ServerCard({ server, onRequestStop, onRemove }: { server: Server; onReq
               Start
             </button>
           )}
-          {running && (
+          {(running || starting) && (
             <>
-              <button className="btn btn-sm btn-ghost" disabled={busy || operationBusy} onClick={() => store.restartServer(server.id)}>
-                Restart
-              </button>
-              <button className="btn btn-sm btn-ghost" disabled={busy || operationBusy} onClick={onRequestStop}>
+              {running && (
+                <button className="btn btn-sm btn-ghost" disabled={operationBusy} onClick={() => store.restartServer(server.id)}>
+                  Restart
+                </button>
+              )}
+              <button className="btn btn-sm btn-ghost" disabled={operationBusy} onClick={onRequestStop}>
                 Stop
               </button>
             </>
@@ -286,8 +350,8 @@ function ServerCard({ server, onRequestStop, onRemove }: { server: Server; onReq
                 label: 'Open folder',
                 onSelect: () => store.revealPath(server.folder),
               },
-              { label: 'Remove from Nooki', onSelect: () => onRemove('forget') },
-              { label: 'Move files to Recycle Bin', onSelect: () => onRemove('recycle'), disabled: server.status !== 'stopped' },
+              { label: 'Remove from Nooki', onSelect: () => onRemove('forget'), disabled: !removable },
+              { label: 'Move files to Recycle Bin', onSelect: () => onRemove('recycle'), disabled: !removable },
             ]}
           />
         </div>

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { useStore } from '../../state/store';
 import type { Server } from '../../types';
-import { Callout, Meter, MetricChart, Avatar, EmptyState, chartDomainMax } from '../../components/ui';
+import { Callout, Meter, Avatar, EmptyState } from '../../components/ui';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../../components/ui/chart';
 import { IconUsers } from '../../components/Icons';
 import { formatMegabytes, formatRelative, formatUptime, softwareLabel, statusLabels } from '../../format';
 import './OverviewTab.css';
@@ -19,19 +21,22 @@ export default function OverviewTab({ server }: { server: Server }) {
   const memPct = (server.memory / server.maxMemory) * 100;
   const memTone = memPct > 88 ? 'danger' : memPct > 70 ? 'warning' : 'accent';
   const cpuTone = server.cpu > 80 ? 'danger' : server.cpu > 60 ? 'warning' : 'accent';
-  const cpuHistory = server.history.map((sample) => ({ at: sample.at, value: sample.cpu }));
-  const memoryHistory = server.history.map((sample) => ({ at: sample.at, value: sample.memory }));
-  if (running) {
-    cpuHistory.push({ at: now, value: server.cpu });
-    memoryHistory.push({ at: now, value: memPct });
-  }
-  const cpuChartMax = chartDomainMax(cpuHistory.map((sample) => sample.value), 10);
-  const memoryChartMax = chartDomainMax(memoryHistory.map((sample) => sample.value), 25);
-  const chartStart = server.startedAt ?? server.history[0]?.at ?? now;
   const chartEnd = running ? now : server.history[server.history.length - 1]?.at ?? now;
+  const sessionStart = server.startedAt ?? server.history[0]?.at ?? chartEnd;
+  const chartStart = Math.max(sessionStart, chartEnd - 3_600_000);
+  const loadHistory = server.history
+    .filter((sample) => sample.at >= chartStart)
+    .map((sample) => ({ at: sample.at, cpu: sample.cpu, memory: sample.memory }));
+  if (running) {
+    if (loadHistory.length === 0 && server.startedAt && server.startedAt < now) {
+      loadHistory.push({ at: server.startedAt, cpu: server.cpu, memory: memPct });
+    }
+    loadHistory.push({ at: now, cpu: server.cpu, memory: memPct });
+  }
+  const chartDomain: [number, number] = chartStart === chartEnd ? [chartStart - 1_000, chartEnd] : [chartStart, chartEnd];
 
   return (
-    <div className="tab">
+    <div className="tab overview-tab">
       {visibleAlerts.length > 0 && (
         <div className="tab-section">
           {visibleAlerts.map((alert) => (
@@ -78,12 +83,9 @@ export default function OverviewTab({ server }: { server: Server }) {
           <Fact label="Build" value={server.build} />
           <Fact
             label="Public address"
-            value={
-              !store.relayAccess.activated
-                ? 'Relay not activated'
-                : server.sharing.address ?? (running ? 'Connecting…' : 'Available when started')
-            }
+            value={server.sharing.address ?? 'None'}
             mono
+            wide
           />
           <Fact label="Local address" value={`localhost:${server.port}`} mono />
           <Fact label="Players" value={`${server.players} of ${server.maxPlayers}`} />
@@ -114,23 +116,57 @@ export default function OverviewTab({ server }: { server: Server }) {
         </div>
       </div>
 
-      <div className="tab-section">
+      <div className="tab-section ov-load-section">
         <h3 className="tab-section-title">Recent load</h3>
-        <div className="ov-charts">
-          <div className="ov-chart">
-            <div className="ov-chart-head">
-              <span>Processor</span>
-              <span className="mono">{running ? `${server.cpu}%` : '—'}</span>
+        <div className="ov-chart">
+          <div className="ov-chart-head">
+            <span>Processor and memory</span>
+            <div className="ov-chart-values" aria-label="Current resource usage">
+              <span><i className="is-cpu" />CPU <strong>{running ? `${Math.round(server.cpu)}%` : '—'}</strong></span>
+              <span><i className="is-memory" />RAM <strong>{running ? `${Math.round(memPct)}%` : '—'}</strong></span>
             </div>
-            <MetricChart data={cpuHistory} color="var(--accent)" label="Processor" maxValue={cpuChartMax} startAt={chartStart} endAt={chartEnd} />
           </div>
-          <div className="ov-chart">
-            <div className="ov-chart-head">
-              <span>Memory</span>
-              <span className="mono">{running ? `${Math.round(memPct)}%` : '—'}</span>
-            </div>
-            <MetricChart data={memoryHistory} color="var(--st-updating)" label="Memory" maxValue={memoryChartMax} startAt={chartStart} endAt={chartEnd} />
-          </div>
+          <ChartContainer config={loadChartConfig} className="ov-load-chart">
+            <LineChart accessibilityLayer data={loadHistory} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="at"
+                type="number"
+                scale="time"
+                domain={chartDomain}
+                tickLine={false}
+                axisLine={false}
+                tickMargin={9}
+                minTickGap={42}
+                tickFormatter={formatChartTick}
+              />
+              <YAxis
+                domain={[0, 100]}
+                ticks={[0, 25, 50, 75, 100]}
+                tickLine={false}
+                axisLine={false}
+                width={34}
+                tickFormatter={(value) => `${value}%`}
+              />
+              <ChartTooltip
+                cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '3 3' }}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(_, payload) => formatChartTooltipTime(Number(payload?.[0]?.payload?.at ?? now))}
+                    formatter={(value, name, item) => (
+                      <div className="ov-chart-tooltip-row">
+                        <i style={{ background: item.color }} />
+                        <span>{loadChartConfig[name === 'cpu' ? 'cpu' : 'memory'].label}</span>
+                        <strong>{Math.round(Number(value))}%</strong>
+                      </div>
+                    )}
+                  />
+                }
+              />
+              <Line dataKey="cpu" type="monotone" stroke="var(--color-cpu)" strokeWidth={2} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+              <Line dataKey="memory" type="monotone" stroke="var(--color-memory)" strokeWidth={2} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+            </LineChart>
+          </ChartContainer>
         </div>
       </div>
 
@@ -190,6 +226,19 @@ export default function OverviewTab({ server }: { server: Server }) {
   );
 }
 
+const loadChartConfig = {
+  cpu: { label: 'Processor', color: 'var(--st-running)' },
+  memory: { label: 'Memory', color: 'var(--st-updating)' },
+} satisfies ChartConfig;
+
+function formatChartTick(value: number): string {
+  return new Date(value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatChartTooltipTime(value: number): string {
+  return new Date(value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
 function useChartClock(active: boolean) {
   const [now, setNow] = useState(Date.now);
 
@@ -203,11 +252,11 @@ function useChartClock(active: boolean) {
   return now;
 }
 
-function Fact({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function Fact({ label, value, mono, wide }: { label: string; value: string; mono?: boolean; wide?: boolean }) {
   return (
-    <div className="fact">
+    <div className={`fact ${wide ? 'fact-wide' : ''}`}>
       <span className="fact-label">{label}</span>
-      <span className={`fact-value ${mono ? 'mono' : ''}`}>{value}</span>
+      <span className={`fact-value ${mono ? 'mono' : ''}`} title={value}>{value}</span>
     </div>
   );
 }

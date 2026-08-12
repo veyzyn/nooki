@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../state/store';
 import type { ModpackCatalog, ModpackProject, ModpackVersionOption, ModProvider, OperationEvent, Server } from '../types';
 import { Callout, Field, FolderPicker, Modal, ProgressBar, Stepper, Toggle } from '../components/ui';
-import { IconArrowLeft, IconBox, IconCheck, IconSearch, IconWarning } from '../components/Icons';
+import { IconArrowLeft, IconBox, IconCheck, IconSearch } from '../components/Icons';
 import { formatBytes, formatMegabytes } from '../format';
 import modrinthLogo from '../assets/modrinth-logo.svg';
 import curseforgeLogo from '../assets/curseforge-logo.svg';
@@ -136,6 +136,7 @@ export default function ModpackWizard({ onClose, onBack, initialName = '' }: { o
         port,
         parentFolder,
         eula,
+        iconUrl: selected.iconUrl,
       }, (event: OperationEvent) => {
         setOperationId(event.data.operationId);
         if (event.event !== 'progress') return;
@@ -197,7 +198,7 @@ export default function ModpackWizard({ onClose, onBack, initialName = '' }: { o
   }
 
   return (
-    <Modal open onClose={onClose} className="modpack-modal" title="Create from a modpack" description="Pick a server pack and Nooki configures the loader, Java, and files." width={760}
+    <Modal open onClose={onClose} className={`modpack-modal ${step === 0 ? 'is-browser-step' : ''}`} title="Create from a modpack" description="Pick a server pack and Nooki configures the loader, Java, and files." width={760}
       footer={<>
         <button className="btn btn-ghost" onClick={() => { if (step === 0) onBack(); else setStep(step - 1); }}>Back</button>
         <div className="foot-spacer" />
@@ -259,7 +260,7 @@ export default function ModpackWizard({ onClose, onBack, initialName = '' }: { o
         </div>}
 
         {step === 3 && <div className="wizard-panel">
-          <div className="review"><div className="review-icon"><IconBox size={34} /></div><div className="review-rows">
+          <div className="review"><div className="review-icon">{selected ? <PackLogo project={selected} /> : <IconBox size={34} />}</div><div className="review-rows">
             <div className="summary-row"><span>Pack</span><strong>{selected?.name}</strong></div>
             <div className="summary-row"><span>Release</span><strong>{chosenVersion?.name}</strong></div>
             <div className="summary-row"><span>Software</span><strong>{chosenVersion?.loader} · Minecraft {chosenVersion?.minecraftVersion}</strong></div>
@@ -267,7 +268,7 @@ export default function ModpackWizard({ onClose, onBack, initialName = '' }: { o
             <div className="summary-row"><span>Port</span><strong className="mono">{port}</strong></div>
           </div></div>
           <Callout tone="info" title="Nooki handles the full setup">The pack files, exact loader, compatible Java runtime, EULA, port, and launch target are configured before the server is added.</Callout>
-          <div className="eula"><Toggle checked={eula} onChange={setEula} label="I accept the Minecraft End User Licence Agreement" />{!eula && <p className="field-error"><IconWarning size={12} /> Required before installation</p>}</div>
+          <div className="eula"><Toggle checked={eula} onChange={setEula} label="I accept the Minecraft End User Licence Agreement" error={!eula ? 'Required before installation' : undefined} /></div>
         </div>}
       </div>
     </Modal>

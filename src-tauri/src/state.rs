@@ -407,7 +407,8 @@ async fn read_latest_console(server: &Server) -> Result<Vec<LogLine>> {
     if !path.is_file() {
         return Ok(Vec::new());
     }
-    let text = tokio::fs::read_to_string(&path).await?;
+    let bytes = tokio::fs::read(&path).await?;
+    let text = String::from_utf8_lossy(&bytes);
     let rows = text.lines().collect::<Vec<_>>();
     let start = rows.len().saturating_sub(2_000);
     Ok(rows[start..]

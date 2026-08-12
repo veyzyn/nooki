@@ -1137,6 +1137,10 @@ fn safe_mod_path(directory: &Path, file_name: &str) -> Result<PathBuf> {
     Ok(joined)
 }
 
+pub(crate) async fn load_catalog_icon(provider: &str, icon_url: &str) -> Result<Option<String>> {
+    load_icon(provider, icon_url).await
+}
+
 async fn load_icon(provider: &str, icon_url: &str) -> Result<Option<String>> {
     validate_icon_url(provider, icon_url)?;
     let cache = ICON_CACHE.get_or_init(|| tokio::sync::RwLock::new(HashMap::new()));

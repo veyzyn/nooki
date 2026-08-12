@@ -5,6 +5,7 @@ use std::{
     time::Duration,
 };
 
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use tauri::{ipc::Channel, AppHandle, State};
 
 use crate::{
@@ -24,6 +25,7 @@ use crate::{
 };
 
 type SharedState<'a> = State<'a, Arc<AppState>>;
+const MAX_SERVER_ICON_BYTES: u64 = 1024 * 1024;
 
 #[tauri::command]
 pub async fn initialize(
@@ -43,6 +45,13 @@ pub async fn cancel_operation(operation_id: String) -> CommandResult<()> {
             "That operation has already finished.".into(),
         )))
     }
+}
+
+#[tauri::command]
+pub async fn load_server_icon(path: String) -> CommandResult<String> {
+    encode_local_server_icon(Path::new(&path))
+        .await
+        .map_err(AppError::from)
 }
 
 #[tauri::command]
@@ -320,7 +329,14 @@ pub async fn remove_server(
     mode: String,
     confirmation: Option<String>,
 ) -> CommandResult<()> {
-    remove(state.inner().clone(), &id, &mode, confirmation.as_deref())
+    let state = state.inner().clone();
+    let lock = state.operation_lock(&id);
+    let _guard = lock.try_lock().map_err(|_| {
+        AppError::from(Error::Conflict(
+            "Another operation is already using this server.".into(),
+        ))
+    })?;
+    remove(state, &id, &mode, confirmation.as_deref())
         .await
         .map_err(AppError::from)
 }
@@ -645,6 +661,7 @@ pub(crate) async fn create_with_overlay(
     overlay: Option<PathBuf>,
     creation_progress: Option<CreationProgress>,
 ) -> Result<Server> {
+    let icon_data = validate_server_icon_data(input.icon_data.as_deref())?;
     validate_new_server(
         &state,
         &input.name,
@@ -839,6 +856,7 @@ pub(crate) async fn create_with_overlay(
         folder: path_string(&final_folder),
         jar_path: path_string(&final_folder.join(launch_target)),
         accent: accent_for(&id),
+        icon_data,
         motd: format!("{} - managed by Nooki", input.name.trim()),
         game_mode: "survival".into(),
         difficulty: "normal".into(),
@@ -936,6 +954,7 @@ async fn import(
     input: ImportServerInput,
     channel: Option<&Channel<OperationEvent>>,
 ) -> Result<Server> {
+    let icon_data = validate_server_icon_data(input.icon_data.as_deref())?;
     validate_new_server(
         &state,
         &input.name,
@@ -1021,6 +1040,7 @@ async fn import(
         folder: path_string(&folder),
         jar_path: path_string(&jar),
         accent: accent_for(&id),
+        icon_data,
         motd: properties
             .get("motd")
             .unwrap_or("A Minecraft Server")
@@ -1613,9 +1633,26 @@ async fn remove(
         )));
     }
     if state.processes.is_running(id).await {
-        return Err(Error::Conflict(
-            "Stop the server before removing it.".into(),
-        ));
+        if server.status != ServerStatus::Crashed {
+            return Err(Error::Conflict(
+                "Stop the server before removing it.".into(),
+            ));
+        }
+
+        // A fatal startup line can mark a server as crashed just before Java fully exits.
+        // Finish terminating that crashed process so its files can be safely removed.
+        // It may have exited between the status check and this call; waiting for the
+        // monitor to finish is what makes deletion safe, so a redundant kill is harmless.
+        let _ = state.processes.force_stop(id).await;
+        if !state
+            .processes
+            .wait_for_exit(id, Duration::from_secs(30))
+            .await
+        {
+            return Err(Error::Process(
+                "The crashed Java process did not exit in time. Try again after it closes.".into(),
+            ));
+        }
     }
     if mode == "recycle" {
         if confirmation != Some(server.name.as_str()) {
@@ -2142,6 +2179,74 @@ fn accent_for(id: &str) -> String {
     palette[index].into()
 }
 
+async fn encode_local_server_icon(path: &Path) -> Result<String> {
+    let metadata = tokio::fs::metadata(path)
+        .await
+        .map_err(|error| path_io_error("Nooki could not read that icon", path, error))?;
+    if !metadata.is_file() {
+        return Err(Error::Validation(
+            "Choose an image file for the server icon.".into(),
+        ));
+    }
+    if metadata.len() > MAX_SERVER_ICON_BYTES {
+        return Err(Error::Validation(
+            "Server icons must be 1 MB or smaller.".into(),
+        ));
+    }
+    let bytes = tokio::fs::read(path)
+        .await
+        .map_err(|error| path_io_error("Nooki could not read that icon", path, error))?;
+    let mime = server_icon_mime(&bytes).ok_or_else(|| {
+        Error::Validation("Choose a PNG, JPEG, or WebP image for the server icon.".into())
+    })?;
+    Ok(format!("data:{mime};base64,{}", BASE64.encode(bytes)))
+}
+
+fn validate_server_icon_data(value: Option<&str>) -> Result<Option<String>> {
+    let Some(value) = value.filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    if value.len() > (MAX_SERVER_ICON_BYTES as usize * 4 / 3) + 128 {
+        return Err(Error::Validation(
+            "Server icons must be 1 MB or smaller.".into(),
+        ));
+    }
+    let (header, encoded) = value
+        .split_once(";base64,")
+        .ok_or_else(|| Error::Validation("The selected server icon is invalid.".into()))?;
+    let declared_mime = header
+        .strip_prefix("data:")
+        .filter(|mime| matches!(*mime, "image/png" | "image/jpeg" | "image/webp"))
+        .ok_or_else(|| {
+            Error::Validation("Choose a PNG, JPEG, or WebP image for the server icon.".into())
+        })?;
+    let bytes = BASE64
+        .decode(encoded)
+        .map_err(|_| Error::Validation("The selected server icon is invalid.".into()))?;
+    if bytes.len() as u64 > MAX_SERVER_ICON_BYTES || server_icon_mime(&bytes) != Some(declared_mime)
+    {
+        return Err(Error::Validation(
+            "The selected server icon is invalid.".into(),
+        ));
+    }
+    Ok(Some(format!(
+        "data:{declared_mime};base64,{}",
+        BASE64.encode(bytes)
+    )))
+}
+
+fn server_icon_mime(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        Some("image/png")
+    } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
+        Some("image/jpeg")
+    } else if bytes.len() >= 12 && bytes.starts_with(b"RIFF") && &bytes[8..12] == b"WEBP" {
+        Some("image/webp")
+    } else {
+        None
+    }
+}
+
 fn modern_management(version: &str) -> bool {
     let pieces = version
         .trim_start_matches(|value: char| !value.is_ascii_digit())
@@ -2187,6 +2292,34 @@ mod tests {
     #[test]
     fn sanitizes_created_folder_names() {
         assert_eq!(unique_folder_name("My: Server?"), "My- Server-");
+    }
+
+    #[test]
+    fn recognizes_supported_server_icon_formats() {
+        assert_eq!(
+            server_icon_mime(b"\x89PNG\r\n\x1a\nrest"),
+            Some("image/png")
+        );
+        assert_eq!(
+            server_icon_mime(&[0xff, 0xd8, 0xff, 0xe0]),
+            Some("image/jpeg")
+        );
+        assert_eq!(
+            server_icon_mime(b"RIFF\x04\x00\x00\x00WEBP"),
+            Some("image/webp")
+        );
+        assert_eq!(server_icon_mime(b"<svg></svg>"), None);
+    }
+
+    #[test]
+    fn validates_embedded_server_icons() {
+        let bytes = b"\x89PNG\r\n\x1a\nrest";
+        let value = format!("data:image/png;base64,{}", BASE64.encode(bytes));
+        assert_eq!(
+            validate_server_icon_data(Some(&value)).unwrap(),
+            Some(value)
+        );
+        assert!(validate_server_icon_data(Some("data:image/svg+xml;base64,PHN2Zz4=")).is_err());
     }
 
     #[tokio::test]

@@ -158,6 +158,7 @@ pub fn run() {
             commands::check_server_updates,
             commands::change_server_software,
             commands::cancel_operation,
+            commands::load_server_icon,
             commands::quit_application,
             databases::database_environment,
             databases::list_databases,

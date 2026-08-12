@@ -2,7 +2,6 @@
   padding: var(--s-5) var(--s-6) var(--s-6);
   gap: var(--s-3);
   overflow: hidden;
-  animation: fadeIn var(--dur-slow) var(--ease-out) both;
 }
 
 .console-toolbar {
@@ -60,8 +59,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background:
-    linear-gradient(180deg, #05080a, var(--bg-inset));
+  background: var(--bg-inset);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: var(--s-3) 0;
@@ -69,19 +67,8 @@
   font-size: var(--fs-sm);
   line-height: 1.7;
   cursor: text;
-  box-shadow:
-    inset 0 2px 8px rgba(0, 0, 0, 0.4),
-    var(--sh-sm);
-  /* Subtle scanlines for that terminal feel */
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.04),
-      rgba(0, 0, 0, 0.04) 1px,
-      transparent 1px,
-      transparent 3px
-    ),
-    linear-gradient(180deg, #05080a, var(--bg-inset));
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.28);
+  overflow-anchor: none;
 }
 
 .log-line {
@@ -90,8 +77,9 @@
   padding: 1px var(--s-4);
   white-space: pre-wrap;
   word-break: break-word;
-  transition: background var(--dur-fast) var(--ease-smooth);
-  animation: fadeInLeft var(--dur-fast) var(--ease-out) both;
+  contain: layout paint style;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 24px;
 }
 
 .log-line:hover {

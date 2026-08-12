@@ -1,15 +1,12 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { open as openFile } from '@tauri-apps/plugin-dialog';
 import { useStore } from '../state/store';
 import { Field, FolderPicker, Modal, ProgressBar, Select, Stepper, Callout, Toggle } from '../components/ui';
-import { IconBlock, IconBox, IconCheck, IconFolder, IconPlus, IconSearch, IconWarning } from '../components/Icons';
+import { IconBox, IconCheck, IconFolder, IconPlus, IconSearch } from '../components/Icons';
+import { SoftwareIcon } from '../components/ServerIcon';
 import ModpackWizard from './ModpackWizard';
 import { formatMegabytes, softwareLabel } from '../format';
 import type { ImportScan, OperationEvent, Server, ServerType, VersionOption } from '../types';
-import paperLogo from '../assets/papermc-logo.svg';
-import minecraftLogo from '../assets/minecraft-grass-block.svg';
-import forgeLogo from '../assets/minecraftforge-anvil.svg';
-import fabricLogo from '../assets/fabricmc-logo.svg';
-import neoforgeLogo from '../assets/neoforged-logo.svg';
 import './AddServerWizard.css';
 
 type Mode = 'choose' | 'create' | 'modpack' | 'import';
@@ -26,17 +23,6 @@ const softwareDescriptions: Record<ServerType, string> = {
   neoforge: 'A modern continuation of the Forge ecosystem',
   fabric: 'A lightweight, modern mod loader',
 };
-
-function SoftwareIcon({ type, size = 22 }: { type: ServerType; size?: number }) {
-  const logos: Record<ServerType, string> = {
-    vanilla: minecraftLogo,
-    paper: paperLogo,
-    forge: forgeLogo,
-    neoforge: neoforgeLogo,
-    fabric: fabricLogo,
-  };
-  return <img className={`software-brand-logo is-${type}`} src={logos[type]} alt="" style={{ '--software-logo-size': `${size}px` } as CSSProperties} />;
-}
 
 function versionDetail(type: ServerType, version: VersionOption) {
   if (type === 'paper' && version.build && version.build !== 'release') return `Paper build ${version.build}`;
@@ -58,6 +44,7 @@ interface Draft {
   build: string;
   jarPath: string;
   experimental: boolean;
+  iconData: string | null;
 }
 
 const emptyDraft: Draft = {
@@ -72,7 +59,46 @@ const emptyDraft: Draft = {
   build: '',
   jarPath: '',
   experimental: false,
+  iconData: null,
 };
+
+function ServerIconPicker({ type, value, onChange }: { type: ServerType; value: string | null; onChange: (value: string | null) => void }) {
+  const store = useStore();
+  const [loading, setLoading] = useState(false);
+
+  const chooseIcon = async () => {
+    const selected = await openFile({
+      multiple: false,
+      directory: false,
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }],
+    });
+    if (typeof selected !== 'string') return;
+    setLoading(true);
+    try {
+      onChange(await store.loadServerIcon(selected));
+    } catch (error) {
+      store.pushToast({ tone: 'error', title: 'Icon was not selected', detail: String((error as { message?: string })?.message ?? error) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="server-icon-choice">
+      <span className={`server-icon-choice-preview ${value ? 'is-custom' : ''}`}>
+        {value ? <img src={value} alt="Custom server icon preview" /> : <SoftwareIcon type={type} size={30} />}
+      </span>
+      <div className="server-icon-choice-copy">
+        <strong>Server icon</strong>
+        <span>{value ? 'Using your custom image' : `Using the ${softwareLabel(type)} icon`}</span>
+      </div>
+      {value && <button type="button" className="btn btn-sm btn-ghost" disabled={loading} onClick={() => onChange(null)}>Use default</button>}
+      <button type="button" className="btn btn-sm btn-secondary" disabled={loading} onClick={() => void chooseIcon()}>
+        {loading ? 'Loading…' : value ? 'Change' : 'Choose icon'}
+      </button>
+    </div>
+  );
+}
 
 function SoftwareVersionPicker({
   serverType,
@@ -293,12 +319,12 @@ export default function AddServerWizard({ onClose }: { onClose: () => void }) {
         ? await store.createServer({
             name: draft.name.trim(), type: draft.type, version: draft.version, build: draft.build || null,
             minMemory: draft.minMemory, maxMemory: draft.maxMemory, port: draft.port,
-            parentFolder: draft.folder, eula: draft.eula, experimental: draft.experimental,
+            parentFolder: draft.folder, eula: draft.eula, experimental: draft.experimental, iconData: draft.iconData,
           }, onProgress)
         : await store.importServer({
             name: draft.name.trim(), folder: draft.folder, jarPath: draft.jarPath, type: draft.type,
             version: draft.version, build: draft.build, minMemory: draft.minMemory,
-            maxMemory: draft.maxMemory, port: draft.port, eula: draft.eula,
+            maxMemory: draft.maxMemory, port: draft.port, eula: draft.eula, iconData: draft.iconData,
           }, onProgress);
       const server: Server = created;
       setCreatedServer(server);
@@ -504,6 +530,7 @@ export default function AddServerWizard({ onClose }: { onClose: () => void }) {
                     onBlur={() => markTouched('name')}
                   />
                 </Field>
+                <ServerIconPicker type={draft.type} value={draft.iconData} onChange={(iconData) => patch({ iconData })} />
                 <Callout tone="info" title="Nooki keeps each server in its own folder">
                   Worlds, settings, and backups stay separate, so nothing you do to one server affects the others.
                 </Callout>
@@ -601,7 +628,7 @@ export default function AddServerWizard({ onClose }: { onClose: () => void }) {
               <div className="wizard-panel">
                 <div className="review">
                   <div className="review-icon">
-                    <IconBlock size={44} color="#5fb87f" />
+                    {draft.iconData ? <img className="review-server-icon" src={draft.iconData} alt="" /> : <SoftwareIcon type={draft.type} size={40} />}
                   </div>
                   <div className="review-rows">
                     <SummaryRow label="Name" value={draft.name.trim() || '—'} />
@@ -620,12 +647,8 @@ export default function AddServerWizard({ onClose }: { onClose: () => void }) {
                     }}
                     label="I accept the Minecraft End User Licence Agreement"
                     hint="Mojang requires this before any server can start."
+                    error={show('eula') ? errors.eula : undefined}
                   />
-                  {show('eula') && (
-                    <p className="field-error">
-                      <IconWarning size={12} /> {errors.eula}
-                    </p>
-                  )}
                 </div>
               </div>
             )}
@@ -682,6 +705,7 @@ export default function AddServerWizard({ onClose }: { onClose: () => void }) {
                     onBlur={() => markTouched('name')}
                   />
                 </Field>
+                <ServerIconPicker type={draft.type} value={draft.iconData} onChange={(iconData) => patch({ iconData })} />
                 <div className="two-col">
                   <Field label="Software">
                     <Select
@@ -753,8 +777,8 @@ export default function AddServerWizard({ onClose }: { onClose: () => void }) {
                       markTouched('eula');
                     }}
                     label="I accept the Minecraft End User Licence Agreement"
+                    error={show('eula') ? errors.eula : undefined}
                   />
-                  {show('eula') && <p className="field-error">{errors.eula}</p>}
                 </div>
               </div>
             )}

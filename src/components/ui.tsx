@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode } from 'react';
 import { open as openDirectory } from '@tauri-apps/plugin-dialog';
-import { IconCheck, IconChevronDown, IconWarning, IconX } from './Icons';
+import { CircleAlert, LoaderCircle } from 'lucide-react';
+import { IconCheck, IconWarning, IconX } from './Icons';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Switch as ShadcnSwitch } from './ui/switch';
+import { Label } from './ui/label';
+import { Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { Progress as ShadcnProgress } from './ui/progress';
+import { Alert, AlertAction, AlertDescription, AlertTitle } from './ui/alert';
 import './ui.css';
 
 /* ------------------------------- Modal ------------------------------- */
@@ -31,73 +38,21 @@ export function Modal({
   dismissable = true,
   className = '',
 }: ModalProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && dismissable) {
-        e.stopPropagation();
-        onClose();
-      }
-      if (e.key === 'Tab' && panelRef.current) {
-        const focusables = panelRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        );
-        if (focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        } else if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        }
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    const timer = window.setTimeout(() => {
-      const target = panelRef.current?.querySelector<HTMLElement>(
-        'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button[data-autofocus]',
-      );
-      target?.focus();
-    }, 40);
-    return () => {
-      document.removeEventListener('keydown', onKey);
-      window.clearTimeout(timer);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  if (!open) return null;
-
   return (
-    <div className="scrim" onMouseDown={dismissable ? onClose : undefined}>
-      <div
+    <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen && dismissable) onClose(); }}>
+      <DialogContent
         className={`modal ${tone === 'danger' ? 'modal-danger' : ''} ${className}`}
-        style={{ width }}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        ref={panelRef}
-        onMouseDown={(e) => e.stopPropagation()}
+        style={{ width, maxWidth: 'calc(100vw - 32px)' }}
+        showCloseButton={dismissable}
       >
-        <header className="modal-head">
-          <div>
-            <h2 className="modal-title">{title}</h2>
-            {description && <p className="modal-desc">{description}</p>}
-          </div>
-          {dismissable && (
-            <button className="icon-btn" onClick={onClose} aria-label="Close">
-              <IconX size={14} />
-            </button>
-          )}
-        </header>
+        <DialogHeader className="modal-head">
+          <DialogTitle className="modal-title">{title}</DialogTitle>
+          {description && <DialogDescription className="modal-desc">{description}</DialogDescription>}
+        </DialogHeader>
         {children && <div className="modal-body">{children}</div>}
-        {footer && <footer className="modal-foot">{footer}</footer>}
-      </div>
-    </div>
+        {footer && <DialogFooter className="modal-foot">{footer}</DialogFooter>}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -170,31 +125,28 @@ interface ToggleProps {
   onChange: (value: boolean) => void;
   label: string;
   hint?: string;
+  error?: string;
   disabled?: boolean;
   restartHint?: boolean;
 }
 
-export function Toggle({ checked, onChange, label, hint, disabled, restartHint }: ToggleProps) {
+export function Toggle({ checked, onChange, label, hint, error, disabled, restartHint }: ToggleProps) {
   return (
     <label className={`toggle-row ${disabled ? 'is-disabled' : ''}`}>
       <span className="toggle-text">
         <span className="toggle-label">
           {label}
           {restartHint && <span className="restart-tag">restart needed</span>}
+          {error && <span className="toggle-inline-error"><IconWarning size={11} /> {error}</span>}
         </span>
         {hint && <span className="toggle-hint">{hint}</span>}
       </span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
+      <ShadcnSwitch
+        checked={checked}
+        onCheckedChange={onChange}
         aria-label={label}
-        className={`switch ${checked ? 'on' : ''}`}
         disabled={disabled}
-        onClick={() => onChange(!checked)}
-      >
-        <span className="switch-knob" />
-      </button>
+      />
     </label>
   );
 }
@@ -213,10 +165,10 @@ interface FieldProps {
 export function Field({ label, hint, error, restartHint, children, htmlFor }: FieldProps) {
   return (
     <div className={`field ${error ? 'has-error' : ''}`}>
-      <label className="field-label" htmlFor={htmlFor}>
+      <Label className="field-label" htmlFor={htmlFor}>
         {label}
         {restartHint && <span className="restart-tag">restart needed</span>}
-      </label>
+      </Label>
       {children}
       {error ? <span className="field-error">{error}</span> : hint ? <span className="field-hint">{hint}</span> : null}
     </div>
@@ -250,157 +202,20 @@ export function Select({
   ariaLabel,
   className = '',
 }: SelectProps) {
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [menuStyle, setMenuStyle] = useState({ left: 0, top: 0, width: 0 });
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const listboxId = useId();
-  const selectedIndex = options.findIndex((option) => option.value === value);
-  const selected = selectedIndex >= 0 ? options[selectedIndex] : undefined;
-
-  const positionMenu = useCallback(() => {
-    const rect = triggerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const estimatedHeight = Math.min(248, options.length * 36 + 8);
-    const roomBelow = window.innerHeight - rect.bottom;
-    const openAbove = roomBelow < estimatedHeight + 8 && rect.top > roomBelow;
-    setMenuStyle({
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8)),
-      top: openAbove ? Math.max(8, rect.top - estimatedHeight - 4) : rect.bottom + 4,
-      width: rect.width,
-    });
-  }, [options.length]);
-
-  const openMenu = useCallback(() => {
-    if (disabled || options.length === 0) return;
-    positionMenu();
-    const firstEnabled = options.findIndex((option) => !option.disabled);
-    setActiveIndex(selectedIndex >= 0 && !options[selectedIndex]?.disabled ? selectedIndex : firstEnabled);
-    setOpen(true);
-  }, [disabled, options, positionMenu, selectedIndex]);
-
-  useEffect(() => {
-    if (!open) return;
-    const closeIfOutside = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
-    };
-    const reposition = () => positionMenu();
-    document.addEventListener('mousedown', closeIfOutside);
-    window.addEventListener('resize', reposition);
-    window.addEventListener('scroll', reposition, true);
-    return () => {
-      document.removeEventListener('mousedown', closeIfOutside);
-      window.removeEventListener('resize', reposition);
-      window.removeEventListener('scroll', reposition, true);
-    };
-  }, [open, positionMenu]);
-
-  useEffect(() => {
-    if (!open || activeIndex < 0) return;
-    menuRef.current
-      ?.querySelector<HTMLElement>(`[data-option-index="${activeIndex}"]`)
-      ?.scrollIntoView({ block: 'nearest' });
-  }, [activeIndex, open]);
-
-  const moveActive = (direction: 1 | -1) => {
-    if (options.length === 0) return;
-    let next = activeIndex;
-    for (let count = 0; count < options.length; count += 1) {
-      next = (next + direction + options.length) % options.length;
-      if (!options[next]?.disabled) {
-        setActiveIndex(next);
-        return;
-      }
-    }
-  };
-
-  const choose = (index: number) => {
-    const option = options[index];
-    if (!option || option.disabled) return;
-    onChange(option.value);
-    setOpen(false);
-    triggerRef.current?.focus();
-  };
-
-  const onKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (!open) openMenu();
-      else moveActive(event.key === 'ArrowDown' ? 1 : -1);
-    } else if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      if (!open) openMenu();
-      else if (activeIndex >= 0) choose(activeIndex);
-    } else if (event.key === 'Escape' && open) {
-      event.preventDefault();
-      setOpen(false);
-    } else if (event.key === 'Tab' && open) {
-      setOpen(false);
-    } else if (event.key === 'Home' && open) {
-      event.preventDefault();
-      setActiveIndex(options.findIndex((option) => !option.disabled));
-    } else if (event.key === 'End' && open) {
-      event.preventDefault();
-      for (let index = options.length - 1; index >= 0; index -= 1) {
-        if (!options[index]?.disabled) {
-          setActiveIndex(index);
-          break;
-        }
-      }
-    }
-  };
-
   return (
-    <div className={`custom-select ${open ? 'is-open' : ''} ${disabled ? 'is-disabled' : ''} ${className}`} ref={rootRef}>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="custom-select-trigger"
-        aria-label={ariaLabel}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listboxId}
-        aria-activedescendant={open && activeIndex >= 0 ? `${listboxId}-${activeIndex}` : undefined}
-        disabled={disabled}
-        onClick={() => open ? setOpen(false) : openMenu()}
-        onKeyDown={onKeyDown}
-      >
-        <span className={`custom-select-value ${selected ? '' : 'is-placeholder'}`}>{selected?.label ?? placeholder}</span>
-        <IconChevronDown size={14} className="custom-select-chevron" />
-      </button>
-      {open && createPortal(
-        <div
-          id={listboxId}
-          ref={menuRef}
-          className="custom-select-menu"
-          role="listbox"
-          aria-label={ariaLabel}
-          style={menuStyle}
-        >
-          {options.map((option, index) => (
-            <button
-              id={`${listboxId}-${index}`}
-              data-option-index={index}
-              key={option.value}
-              type="button"
-              role="option"
-              aria-selected={option.value === value}
-              disabled={option.disabled}
-              className={`custom-select-option ${index === activeIndex ? 'is-active' : ''} ${option.value === value ? 'is-selected' : ''}`}
-              onMouseEnter={() => !option.disabled && setActiveIndex(index)}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => choose(index)}
-            >
-              <span>{option.label}</span>
-              {option.value === value && <IconCheck size={13} />}
-            </button>
+    <div className={`custom-select ${disabled ? 'is-disabled' : ''} ${className}`}>
+      <ShadcnSelect value={value || null} onValueChange={(next) => onChange(String(next))} disabled={disabled || options.length === 0}>
+        <SelectTrigger className="custom-select-trigger" aria-label={ariaLabel}>
+          <SelectValue>{options.find((option) => option.value === value)?.label ?? placeholder}</SelectValue>
+        </SelectTrigger>
+        <SelectContent align="start" alignItemWithTrigger={false}>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value} disabled={option.disabled}>
+              {option.label}
+            </SelectItem>
           ))}
-        </div>,
-        document.body,
-      )}
+        </SelectContent>
+      </ShadcnSelect>
     </div>
   );
 }
@@ -436,11 +251,7 @@ export function Segmented<T extends string>({ value, options, onChange, full }: 
 /* ----------------------------- Progress ----------------------------- */
 
 export function ProgressBar({ value, tone = 'accent' }: { value: number; tone?: 'accent' | 'warning' | 'danger' | 'info' }) {
-  return (
-    <div className="progress">
-      <div className={`progress-fill tone-${tone}`} style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
-    </div>
-  );
+  return <ShadcnProgress className={`progress tone-${tone}`} value={Math.max(0, Math.min(100, value))} />;
 }
 
 export function Meter({
@@ -675,86 +486,23 @@ export interface MenuItem {
 }
 
 export function Menu({ items, trigger, align = 'right' }: { items: MenuItem[]; trigger: ReactNode; align?: 'left' | 'right' }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLSpanElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [menuStyle, setMenuStyle] = useState({ left: 0, top: 0 });
-
-  const positionMenu = useCallback(() => {
-    const rect = triggerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const width = menuRef.current?.offsetWidth ?? 210;
-    const height = menuRef.current?.offsetHeight ?? Math.min(360, items.length * 37 + 8);
-    const gap = 6;
-    const padding = 8;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const openAbove = spaceBelow < height + gap && rect.top > spaceBelow;
-    const preferredLeft = align === 'left' ? rect.left : rect.right - width;
-    setMenuStyle({
-      left: Math.max(padding, Math.min(preferredLeft, window.innerWidth - width - padding)),
-      top: openAbove
-        ? Math.max(padding, rect.top - height - gap)
-        : Math.min(rect.bottom + gap, window.innerHeight - height - padding),
-    });
-  }, [align, items.length]);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    const reposition = () => positionMenu();
-    const frame = window.requestAnimationFrame(positionMenu);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    window.addEventListener('resize', reposition);
-    window.addEventListener('scroll', reposition, true);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', reposition);
-      window.removeEventListener('scroll', reposition, true);
-    };
-  }, [open, positionMenu]);
-
   return (
-    <div className="menu-root" ref={rootRef}>
-      <span ref={triggerRef} onClick={() => {
-        if (!open) positionMenu();
-        setOpen((value) => !value);
-      }}>{trigger}</span>
-      {open && createPortal(
-        <div
-          className={`menu menu-portal ${align === 'left' ? 'align-left' : ''}`}
-          role="menu"
-          ref={menuRef}
-          style={menuStyle}
-        >
-          {items.map((item) => (
-            <button
-              key={item.label}
-              role="menuitem"
-              className={`menu-item ${item.danger ? 'is-danger' : ''}`}
-              disabled={item.disabled}
-              onClick={() => {
-                setOpen(false);
-                item.onSelect();
-              }}
-            >
-              <span>{item.label}</span>
-              {item.hint && <span className="menu-hint">{item.hint}</span>}
-            </button>
-          ))}
-        </div>,
-        document.body,
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger render={trigger as ReactElement} />
+      <DropdownMenuContent align={align === 'right' ? 'end' : 'start'} className="min-w-52">
+        {items.map((item) => (
+          <DropdownMenuItem
+            key={item.label}
+            variant={item.danger ? 'destructive' : 'default'}
+            disabled={item.disabled}
+            onClick={item.onSelect}
+          >
+            <span>{item.label}</span>
+            {item.hint && <span className="menu-hint">{item.hint}</span>}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -797,19 +545,19 @@ export function Callout({
   onDismiss?: () => void;
 }) {
   return (
-    <div className={`callout tone-${tone}`}>
-      <span className="callout-dot" />
-      <div className="callout-body">
-        <p className="callout-title">{title}</p>
-        {children && <div className="callout-text">{children}</div>}
-      </div>
-      {action}
-      {onDismiss && (
-        <button className="icon-btn" onClick={onDismiss} aria-label="Dismiss">
-          <IconX size={13} />
-        </button>
-      )}
-    </div>
+    <Alert className={`callout tone-${tone}`} variant={tone === 'error' ? 'destructive' : 'default'}>
+      <CircleAlert />
+      <AlertTitle className="callout-title">{title}</AlertTitle>
+      {children && <AlertDescription className="callout-text">{children}</AlertDescription>}
+      {(action || onDismiss) && <AlertAction className="callout-actions">
+        {action}
+        {onDismiss && (
+          <button className="icon-btn" onClick={onDismiss} aria-label="Dismiss">
+            <IconX size={13} />
+          </button>
+        )}
+      </AlertAction>}
+    </Alert>
   );
 }
 
@@ -859,5 +607,5 @@ export function FolderPicker({
 /* ------------------------------ Spinner ----------------------------- */
 
 export function Spinner({ size = 14 }: { size?: number }) {
-  return <span className="spinner" style={{ width: size, height: size }} aria-hidden="true" />;
+  return <LoaderCircle className="spinner" style={{ width: size, height: size }} aria-hidden="true" />;
 }

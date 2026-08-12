@@ -1,12 +1,13 @@
-.modpack-modal { height: min(720px, calc(100vh - 48px)); }
-.modpack-modal .modal-body { overflow: hidden; }
-.modpack-modal .modpack-wizard { height: 100%; min-height: 0; }
+.modpack-modal { height: auto; }
+.modpack-modal.is-browser-step { height: min(720px, calc(100vh - 48px)); }
+.modpack-modal.is-browser-step .modal-body { flex: 1; overflow: hidden; }
+.modpack-modal.is-browser-step .modpack-wizard { height: 100%; min-height: 0; }
 
 .modpack-browser {
   min-height: 0;
   flex: 1;
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr);
+  grid-template-columns: 132px minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--r-md);
@@ -27,7 +28,7 @@
   align-items: center;
   gap: var(--s-2);
   min-height: 42px;
-  padding: 0 var(--s-2);
+  padding: 0 10px;
   border: 1px solid transparent;
   border-radius: var(--r-sm);
   color: var(--text-secondary);
@@ -98,6 +99,7 @@
 @media (prefers-reduced-motion: reduce) { .modpack-project-skeleton i, .modpack-version-skeleton i { animation: none; } }
 
 .modpack-install-progress { gap: var(--s-3); }
+.modpack-install-progress .progress [data-slot="progress-indicator"] { background: var(--st-running); }
 .modpack-progress-heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: var(--fs-xs); }
 .modpack-progress-heading strong { color: var(--text); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 .modpack-install-stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); margin-top: var(--s-2); }
@@ -105,7 +107,7 @@
 .modpack-install-stage > span { width: 20px; height: 20px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 50%; background: var(--bg-inset); font-size: 9px; font-weight: 700; transition: border-color var(--dur-fast) var(--ease-smooth), background var(--dur-fast) var(--ease-smooth); }
 .modpack-install-stage small { overflow: hidden; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .modpack-install-stage.active { color: var(--text); }
-.modpack-install-stage.active > span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.modpack-install-stage.active > span { border-color: var(--st-running); background: color-mix(in oklab, var(--st-running) 16%, transparent); color: var(--st-running); }
 .modpack-install-stage.complete { color: var(--text-secondary); }
-.modpack-install-stage.complete > span { border-color: var(--accent); background: var(--accent); color: var(--bg-app); }
+.modpack-install-stage.complete > span { border-color: var(--st-running); background: var(--st-running); color: var(--background); }
 .modpack-install-progress .work-msg { min-height: 18px; margin-top: var(--s-1); font-variant-numeric: tabular-nums; }

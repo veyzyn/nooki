@@ -15,7 +15,7 @@ export interface Server {
   id: string; name: string; type: ServerType; version: string; build: string; status: ServerStatus;
   players: number; maxPlayers: number; startedAt: number | null; memory: number; minMemory: number;
   maxMemory: number; cpu: number; diskUsed: number; port: number; folder: string; jarPath: string;
-  accent: string; motd: string; gameMode: 'survival' | 'creative' | 'adventure' | 'spectator';
+  accent: string; iconData?: string | null; motd: string; gameMode: 'survival' | 'creative' | 'adventure' | 'spectator';
   difficulty: 'peaceful' | 'easy' | 'normal' | 'hard'; pvp: boolean; whitelistEnabled: boolean;
   onlineMode: boolean; javaRuntimeId: string; javaRuntime: string; jvmArgs: string; history: ResourceSample[];
   alerts: ServerAlert[]; updateAvailable: { version: string; build: string; notes: string; experimental?: boolean } | null;
@@ -127,7 +127,7 @@ export interface ModpackVersionOption {
 }
 export interface CreateModpackServerInput {
   provider: ModProvider; projectId: string; versionId: string; name: string; minMemory: number;
-  maxMemory: number; port: number; parentFolder: string; eula: boolean; javaRuntimeId?: string | null;
+  maxMemory: number; port: number; parentFolder: string; eula: boolean; javaRuntimeId?: string | null; iconUrl?: string | null;
 }
 export interface ManualModDownload {
   token: string; projectName: string; fileName: string; downloadUrl: string; downloadsFolder: string;
@@ -158,6 +158,7 @@ export interface OperationEventData { operationId: string; phase?: string; progr
 export type OperationEvent = { event: 'started' | 'progress' | 'finished'; data: OperationEventData };
 export type AppEvent =
   | { event: 'serverChanged'; data: Server }
+  | { event: 'serverMetrics'; data: { serverId: string; cpu: number; memory: number; diskUsed: number; sample: ResourceSample } }
   | { event: 'serverRemoved'; data: { serverId: string } }
   | { event: 'consoleLine'; data: { serverId: string; line: LogLine } }
   | { event: 'consoleCleared'; data: { serverId: string } }
@@ -174,11 +175,11 @@ export type AppEvent =
 export interface AppError { code: string; message: string; detail?: string | null; field?: string | null; recoverable: boolean }
 export interface CreateServerInput {
   name: string; type: ServerType; version: string; build?: string | null; minMemory: number; maxMemory: number;
-  port: number; parentFolder: string; eula: boolean; javaRuntimeId?: string | null; experimental?: boolean;
+  port: number; parentFolder: string; eula: boolean; javaRuntimeId?: string | null; iconData?: string | null; experimental?: boolean;
 }
 export interface ImportServerInput {
   name: string; folder: string; jarPath: string; type: ServerType; version: string; build: string;
-  minMemory: number; maxMemory: number; port: number; eula: boolean; javaRuntimeId?: string | null;
+  minMemory: number; maxMemory: number; port: number; eula: boolean; javaRuntimeId?: string | null; iconData?: string | null;
 }
 export interface ServerSettingsInput {
   name: string; motd: string; gameMode: Server['gameMode']; difficulty: Server['difficulty']; maxPlayers: number;

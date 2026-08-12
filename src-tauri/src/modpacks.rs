@@ -4,10 +4,13 @@ use std::{
     io::{Read, Write},
     net::IpAddr,
     path::{Component, Path, PathBuf},
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
-use futures_util::StreamExt;
+use futures_util::{stream, StreamExt};
 use serde::{Deserialize, Serialize};
 use sha1::Sha1;
 use sha2::{Digest, Sha512};
@@ -26,6 +29,7 @@ const PAGE_SIZE: u32 = 20;
 const MAX_ARCHIVE_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 const MAX_EXTRACTED_BYTES: u64 = 12 * 1024 * 1024 * 1024;
 const MAX_PACK_FILES: usize = 75_000;
+const MODRINTH_FILE_CONCURRENCY: usize = 8;
 
 type SharedState<'a> = State<'a, Arc<AppState>>;
 
@@ -79,6 +83,7 @@ pub struct CreateModpackServerInput {
     parent_folder: String,
     eula: bool,
     java_runtime_id: Option<String>,
+    icon_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -197,6 +202,15 @@ struct MrpackFile {
     env: Option<MrpackEnvironment>,
     #[serde(rename = "fileSize")]
     file_size: u64,
+}
+
+#[derive(Debug, Clone)]
+struct MrpackInstallFile {
+    target: PathBuf,
+    url: String,
+    size: u64,
+    sha1: Option<String>,
+    sha512: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -460,6 +474,12 @@ async fn install_pack(
             }
             _ => return Err(Error::Validation("Choose Modrinth or CurseForge.".into())),
         };
+        let icon_data = match input.icon_url.as_deref() {
+            Some(url) => crate::mods::load_catalog_icon(&input.provider, url)
+                .await
+                .unwrap_or(None),
+            None => None,
+        };
         crate::operations::check(&operation_id)?;
         send_progress(
             channel,
@@ -479,6 +499,7 @@ async fn install_pack(
             parent_folder: input.parent_folder,
             eula: input.eula,
             java_runtime_id: input.java_runtime_id,
+            icon_data,
             experimental: true,
         };
         let server = commands::create_with_overlay(
@@ -625,82 +646,180 @@ async fn prepare_modrinth_pack(
             "This modpack is too large to install safely.".into(),
         ));
     }
-    let mut completed_bytes = 0_u64;
-    for (index_number, pack_file) in installable.iter().enumerate() {
-        let relative = safe_relative_path(&pack_file.path)?;
-        let url = pack_file
-            .downloads
-            .first()
-            .ok_or_else(|| Error::NotFound(format!("{} has no download URL.", pack_file.path)))?;
-        validate_pack_download_url(url)?;
-        let target = overlay.join(relative);
-        if let Some(parent) = target.parent() {
-            tokio::fs::create_dir_all(parent).await?;
+    let pack_files = installable
+        .into_iter()
+        .map(|pack_file| {
+            let relative = safe_relative_path(&pack_file.path)?;
+            let url = pack_file.downloads.first().ok_or_else(|| {
+                Error::NotFound(format!("{} has no download URL.", pack_file.path))
+            })?;
+            validate_pack_download_url(url)?;
+            Ok(MrpackInstallFile {
+                target: overlay.join(relative),
+                url: url.clone(),
+                size: pack_file.file_size,
+                sha1: pack_file.hashes.get("sha1").cloned(),
+                sha512: pack_file.hashes.get("sha512").cloned(),
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let file_count = pack_files.len();
+    let downloaded_bytes = Arc::new(AtomicU64::new(0));
+    let downloaded_files = Arc::new(AtomicUsize::new(0));
+    let download_progress_marker = Arc::new(AtomicU64::new(0));
+    let abort_downloads = Arc::new(AtomicBool::new(false));
+    send_progress(
+        channel,
+        operation_id,
+        "files",
+        16.0,
+        "Downloading pack files",
+    );
+    let mut download_jobs = stream::iter(pack_files.iter().cloned())
+        .map(|pack_file| {
+            let channel = channel.clone();
+            let operation_id = operation_id.to_owned();
+            let downloaded_bytes = Arc::clone(&downloaded_bytes);
+            let downloaded_files = Arc::clone(&downloaded_files);
+            let progress_marker = Arc::clone(&download_progress_marker);
+            let abort_downloads = Arc::clone(&abort_downloads);
+            async move {
+                if abort_downloads.load(Ordering::Acquire) {
+                    return Err(Error::Cancelled);
+                }
+                if let Some(parent) = pack_file.target.parent() {
+                    tokio::fs::create_dir_all(parent).await?;
+                }
+                let bytes_for_progress = Arc::clone(&downloaded_bytes);
+                let downloaded_for_progress = Arc::clone(&downloaded_files);
+                let marker_for_progress = Arc::clone(&progress_marker);
+                let channel_for_progress = channel.clone();
+                let operation_for_progress = operation_id.clone();
+                let mut last_received = 0_u64;
+                download_file(
+                    &pack_file.url,
+                    &pack_file.target,
+                    &operation_id,
+                    pack_file.size.max(1),
+                    Some(pack_file.size),
+                    move |received, _| {
+                        let delta = received.saturating_sub(last_received);
+                        last_received = received;
+                        let aggregate = bytes_for_progress
+                            .fetch_add(delta, Ordering::Relaxed)
+                            .saturating_add(delta);
+                        report_modrinth_download_progress(
+                            &channel_for_progress,
+                            &operation_for_progress,
+                            aggregate,
+                            declared_size,
+                            downloaded_for_progress.load(Ordering::Relaxed),
+                            file_count,
+                            &marker_for_progress,
+                        );
+                    },
+                )
+                .await?;
+                let downloaded = downloaded_files
+                    .fetch_add(1, Ordering::Relaxed)
+                    .saturating_add(1);
+                report_modrinth_download_progress(
+                    &channel,
+                    &operation_id,
+                    downloaded_bytes.load(Ordering::Relaxed),
+                    declared_size,
+                    downloaded,
+                    file_count,
+                    &progress_marker,
+                );
+                Result::<()>::Ok(())
+            }
+        })
+        .buffer_unordered(MODRINTH_FILE_CONCURRENCY);
+    let mut first_error = None;
+    while let Some(result) = download_jobs.next().await {
+        if let Err(error) = result {
+            if first_error.is_none() {
+                abort_downloads.store(true, Ordering::Release);
+                crate::operations::cancel(operation_id);
+                first_error = Some(error);
+            }
         }
-        download_file(
-            url,
-            &target,
-            operation_id,
-            pack_file.file_size.max(1),
-            Some(pack_file.file_size),
-            |received, _| {
-                let received_total = completed_bytes.saturating_add(received);
-                let transfer_progress = if declared_size == 0 {
-                    (index_number + 1) as f32 / installable.len().max(1) as f32 * 100.0
-                } else {
-                    received_total.min(declared_size) as f32 / declared_size as f32 * 100.0
-                };
-                send_progress(
-                    channel,
-                    operation_id,
-                    "files",
-                    16.0 + transfer_progress * 0.36,
-                    &format!(
-                        "Downloading pack files · {transfer_progress:.0}% · file {} of {}",
-                        index_number + 1,
-                        installable.len()
-                    ),
-                );
-            },
-        )
-        .await?;
-        let file_progress = if declared_size == 0 {
-            16.0 + (index_number + 1) as f32 / installable.len().max(1) as f32 * 36.0
-        } else {
-            16.0 + completed_bytes
-                .saturating_add(pack_file.file_size)
-                .min(declared_size) as f32
-                / declared_size as f32
-                * 36.0
-        };
-        let verification_channel = channel.clone();
-        let verification_id = operation_id.to_owned();
-        let file_number = index_number + 1;
-        let file_count = installable.len();
-        verify_hash(
-            target.clone(),
-            pack_file.hashes.get("sha1").cloned(),
-            pack_file.hashes.get("sha512").cloned(),
-            operation_id.to_owned(),
-            move |checked, total| {
-                send_transfer_progress(
-                    &verification_channel,
-                    &verification_id,
-                    "verifyPack",
-                    file_progress,
-                    file_progress,
-                    &format!(
-                        "Checking pack file integrity ({}/{})",
-                        file_number, file_count
-                    ),
-                    checked,
-                    total,
-                );
-            },
-        )
-        .await?;
-        completed_bytes = completed_bytes.saturating_add(pack_file.file_size);
     }
+    drop(download_jobs);
+    if let Some(error) = first_error {
+        return Err(error);
+    }
+    send_progress(
+        channel,
+        operation_id,
+        "files",
+        48.0,
+        "All pack files were downloaded",
+    );
+    let verified_files = Arc::new(AtomicUsize::new(0));
+    let verify_progress_marker = Arc::new(AtomicU64::new(0));
+    let abort_verification = Arc::new(AtomicBool::new(false));
+    send_progress(
+        channel,
+        operation_id,
+        "verifyPack",
+        48.0,
+        "Verifying pack files",
+    );
+    let mut verification_jobs = stream::iter(pack_files)
+        .map(|pack_file| {
+            let channel = channel.clone();
+            let operation_id = operation_id.to_owned();
+            let verified_files = Arc::clone(&verified_files);
+            let progress_marker = Arc::clone(&verify_progress_marker);
+            let abort_verification = Arc::clone(&abort_verification);
+            async move {
+                if abort_verification.load(Ordering::Acquire) {
+                    return Err(Error::Cancelled);
+                }
+                verify_hash(
+                    pack_file.target,
+                    pack_file.sha1,
+                    pack_file.sha512,
+                    operation_id.clone(),
+                    |_, _| {},
+                )
+                .await?;
+                let verified = verified_files
+                    .fetch_add(1, Ordering::Relaxed)
+                    .saturating_add(1);
+                report_modrinth_verification_progress(
+                    &channel,
+                    &operation_id,
+                    verified,
+                    file_count,
+                    &progress_marker,
+                );
+                Result::<()>::Ok(())
+            }
+        })
+        .buffer_unordered(MODRINTH_FILE_CONCURRENCY);
+    let mut first_error = None;
+    while let Some(result) = verification_jobs.next().await {
+        if let Err(error) = result {
+            if first_error.is_none() {
+                abort_verification.store(true, Ordering::Release);
+                crate::operations::cancel(operation_id);
+                first_error = Some(error);
+            }
+        }
+    }
+    if let Some(error) = first_error {
+        return Err(error);
+    }
+    send_progress(
+        channel,
+        operation_id,
+        "verifyPack",
+        52.0,
+        "All pack files passed verification",
+    );
     send_progress(
         channel,
         operation_id,
@@ -1427,6 +1546,63 @@ fn send_progress(
         progress: value,
         message: message.into(),
     });
+}
+
+fn report_modrinth_download_progress(
+    channel: &Channel<OperationEvent>,
+    operation_id: &str,
+    downloaded_bytes: u64,
+    declared_bytes: u64,
+    downloaded_files: usize,
+    file_count: usize,
+    progress_marker: &AtomicU64,
+) {
+    let file_count = file_count.max(1);
+    let download_fraction = if declared_bytes == 0 {
+        downloaded_files.min(file_count) as f64 / file_count as f64
+    } else {
+        downloaded_bytes.min(declared_bytes) as f64 / declared_bytes as f64
+    };
+    let percentage = (download_fraction * 100.0).clamp(0.0, 100.0);
+    let marker = percentage.floor() as u64;
+    if marker <= progress_marker.fetch_max(marker, Ordering::Relaxed) {
+        return;
+    }
+    send_progress(
+        channel,
+        operation_id,
+        "files",
+        16.0 + percentage as f32 * 0.32,
+        &format!(
+            "Downloading pack files · {percentage:.0}% · {} of {file_count} downloaded",
+            downloaded_files.min(file_count)
+        ),
+    );
+}
+
+fn report_modrinth_verification_progress(
+    channel: &Channel<OperationEvent>,
+    operation_id: &str,
+    verified_files: usize,
+    file_count: usize,
+    progress_marker: &AtomicU64,
+) {
+    let file_count = file_count.max(1);
+    let percentage = verified_files.min(file_count) as f32 / file_count as f32 * 100.0;
+    let marker = percentage.floor() as u64;
+    if marker <= progress_marker.fetch_max(marker, Ordering::Relaxed) {
+        return;
+    }
+    send_progress(
+        channel,
+        operation_id,
+        "verifyPack",
+        48.0 + percentage * 0.04,
+        &format!(
+            "Verifying pack files · {percentage:.0}% · {} of {file_count} verified",
+            verified_files.min(file_count)
+        ),
+    );
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -1,0 +1,240 @@
+/* Final page-level pass: removes legacy glow/gradient treatments while keeping
+   the feature layouts and stateful behavior that already work in Nooki. */
+
+.view-header,
+.dash-section,
+.stat-card,
+.server-row,
+.activity-item,
+.detail-head,
+.detail-identity,
+.detail-tabs,
+.tab,
+.settings-group,
+.choice,
+.soft-card,
+.review,
+.summary-row,
+.done-panel {
+  animation: none !important;
+}
+
+.choice,
+.soft-card,
+.review,
+.eula,
+.done-panel,
+.scan,
+.settings-card,
+.relay-access-card,
+.quick-world,
+.quick-world-drop,
+.sharing-intro,
+.plugins-surface,
+.players-panel,
+.logs-panel,
+.backups-panel,
+.ov-facts,
+.ov-resources,
+.ov-chart,
+.ov-panel,
+.database-card,
+.databases-empty,
+.world-layout,
+.worlds-empty {
+  border-color: var(--border) !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+}
+
+.choice:hover,
+.soft-card:hover,
+.settings-card:hover,
+.plugin-row:hover,
+.database-card:hover,
+.modpack-project:hover,
+.modpack-version:hover,
+.world-card:hover {
+  border-color: var(--border-strong) !important;
+  background: color-mix(in oklab, var(--card) 92%, var(--foreground) 2%) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.choice-icon,
+.review-icon,
+.done-check {
+  background: var(--muted) !important;
+  color: var(--primary) !important;
+  box-shadow: none !important;
+}
+
+.choice:hover .choice-icon { transform: none !important; }
+
+.soft-card.active,
+.preset.active,
+.version-result.active,
+.modpack-version.active,
+.database-engine-choice.is-selected,
+.world-card.is-selected {
+  border-color: color-mix(in oklab, var(--primary) 38%, var(--border)) !important;
+  background: color-mix(in oklab, var(--primary) 12%, var(--card)) !important;
+  color: var(--foreground) !important;
+  box-shadow: none !important;
+}
+
+.version-picker,
+.modpack-browser {
+  border-color: var(--border) !important;
+  border-radius: var(--radius-xl) !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+}
+
+.version-picker-toolbar,
+.version-product-rail,
+.modpack-provider-rail,
+.version-results-head {
+  background: color-mix(in oklab, var(--muted) 32%, transparent) !important;
+}
+
+.version-product-rail button,
+.modpack-provider-rail button {
+  border-radius: var(--radius-lg) !important;
+}
+
+.version-product-rail button.active,
+.modpack-provider-rail button.active {
+  border-color: transparent !important;
+  background: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+  box-shadow: none !important;
+}
+
+.version-product-rail button.active::before { background: var(--primary) !important; box-shadow: none !important; }
+.version-result-check,
+.version-tag.is-latest,
+.modpack-version-tags,
+.modpack-version-tags em.auto { color: var(--primary) !important; }
+
+.version-picker-search,
+.modpack-search,
+.plugin-search,
+.console-search,
+.quick-console-input {
+  border-color: transparent !important;
+  border-radius: var(--radius-lg) !important;
+  background: color-mix(in oklab, var(--input) 50%, transparent) !important;
+  box-shadow: none !important;
+}
+
+.version-picker-search:focus-within,
+.modpack-search:focus-within,
+.plugin-search:focus-within,
+.console-search:focus-within,
+.quick-console-input:focus-within {
+  border-color: var(--ring) !important;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 24%, transparent) !important;
+}
+
+.range { background: var(--muted) !important; box-shadow: none !important; }
+.range::-webkit-slider-thumb { background: var(--primary) !important; box-shadow: none !important; }
+.preset { border-color: var(--border) !important; background: var(--card) !important; box-shadow: none !important; }
+
+.save-bar {
+  border-color: color-mix(in oklab, var(--st-warning) 26%, var(--border)) !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+}
+.save-bar::before { background: var(--st-warning) !important; box-shadow: none !important; }
+
+.console-output,
+.quick-console {
+  border-color: var(--border) !important;
+  background: color-mix(in oklab, var(--background) 88%, black) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+.console-command,
+.quick-console-input {
+  border-color: var(--border) !important;
+  background: var(--card) !important;
+  box-shadow: none !important;
+}
+
+.log-line { animation: none !important; }
+.log-line:hover { background: color-mix(in oklab, var(--foreground) 4%, transparent) !important; }
+
+.settings-group-head,
+.logs-head-row,
+.backups-head-row,
+.players-head,
+.world-list {
+  background: color-mix(in oklab, var(--muted) 22%, transparent) !important;
+}
+
+.plugins-toolbar {
+  background: transparent !important;
+}
+
+.plugin-row,
+.player-row,
+.logs-row,
+.backups-row,
+.runtime-row,
+.storage-row,
+.database-card,
+.activity-item {
+  border-color: var(--border) !important;
+}
+
+.quick-world-drop.is-dragging {
+  border-color: var(--primary) !important;
+  background: color-mix(in oklab, var(--primary) 10%, var(--card)) !important;
+}
+
+.quick-world-drop-icon,
+.sharing-intro-icon,
+.quick-session-mark,
+.plugin-mark,
+.database-engine,
+.world-mark {
+  box-shadow: none !important;
+}
+
+.world-card.is-selected::before { background: var(--primary) !important; }
+.world-flag { background: color-mix(in oklab, var(--primary) 12%, transparent) !important; color: var(--primary) !important; }
+.world-danger-zone { border-color: color-mix(in oklab, var(--destructive) 28%, var(--border)) !important; background: color-mix(in oklab, var(--destructive) 6%, var(--card)) !important; }
+
+.skeleton-block,
+.skeleton-copy i,
+.plugin-logo-skeleton,
+.database-skeleton i,
+.world-skeleton i,
+.world-detail-skeleton > i,
+.modpack-project-skeleton i,
+.modpack-version-skeleton i,
+.version-skeleton span {
+  background: var(--muted) !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton-block,
+  .skeleton-copy i,
+  .plugin-logo-skeleton,
+  .database-skeleton i,
+  .world-skeleton i,
+  .world-detail-skeleton > i,
+  .modpack-project-skeleton i,
+  .modpack-version-skeleton i,
+  .version-skeleton span {
+    animation-duration: 1.8s !important;
+  }
+}
+
+@media (max-width: 860px) {
+  .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .view-header, .dash-body { padding-left: 20px; padding-right: 20px; }
+  .server-row-history { display: none; }
+}

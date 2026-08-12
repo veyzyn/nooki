@@ -9,8 +9,10 @@ import ServerDetail from './views/ServerDetail';
 import Titlebar from './components/Titlebar';
 import { IconServer, IconX } from './components/Icons';
 import { ConfirmDialog, EmptyState, Spinner } from './components/ui';
+import { TooltipProvider } from './components/ui/tooltip';
 import './styles/global.css';
 import './App.css';
+import './styles/shadcn-overrides.css';
 
 function AppContent() {
   const store = useStore();
@@ -67,8 +69,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <StoreProvider>
-      <AppContent />
-    </StoreProvider>
+    <TooltipProvider>
+      <StoreProvider>
+        <AppContent />
+      </StoreProvider>
+    </TooltipProvider>
   );
 }

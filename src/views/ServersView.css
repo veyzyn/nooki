@@ -33,3 +33,97 @@
   color: var(--st-crashed);
   font-weight: 500;
 }
+
+.recycle-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.recycle-path-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--muted) 34%, transparent);
+}
+
+.recycle-path-block > span {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.recycle-path-block code {
+  overflow-wrap: anywhere;
+  color: var(--foreground);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.recycle-confirm-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.recycle-confirm-copy > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.recycle-confirm-copy strong {
+  color: var(--foreground);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+}
+
+.recycle-confirm-copy > div > span {
+  color: var(--muted-foreground);
+  font-size: var(--fs-xs);
+}
+
+.recycle-name-chip {
+  display: inline-flex;
+  max-width: 55%;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--muted);
+  color: var(--foreground);
+  text-align: left;
+}
+
+.recycle-name-chip:hover {
+  border-color: var(--border-strong);
+  background: color-mix(in oklab, var(--muted) 82%, var(--foreground) 5%);
+}
+
+.recycle-name-chip.is-copied {
+  border-color: color-mix(in oklab, var(--st-running) 34%, var(--border));
+  background: var(--st-running-bg);
+  color: var(--st-running);
+}
+
+.recycle-name-chip > span {
+  overflow: hidden;
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recycle-name-chip svg { flex: 0 0 auto; }
+.recycle-name-chip em { color: var(--muted-foreground); font-size: 10px; font-style: normal; }
+.recycle-name-chip.is-copied em { color: inherit; }

@@ -69,7 +69,9 @@ impl Database {
         let mut servers = Vec::with_capacity(rows.len());
         for row in rows {
             let mut server: Server = serde_json::from_str(row.get::<&str, _>("data"))?;
-            server.status = ServerStatus::Stopped;
+            if server.status != ServerStatus::Crashed {
+                server.status = ServerStatus::Stopped;
+            }
             server.players = 0;
             server.started_at = None;
             server.memory = 0.0;

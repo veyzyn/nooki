@@ -34,6 +34,7 @@ export const api = {
     return call<VersionCatalog>('list_software_versions', { serverType, includeExperimental });
   },
   scanServerFolder(path: string) { return call<ImportScan>('scan_server_folder', { path }); },
+  loadServerIcon(path: string) { return call<string>('load_server_icon', { path }); },
   scanEphemeralWorld(path: string) { return call<EphemeralWorldScan>('scan_ephemeral_world', { path }); },
   createEphemeralServer(input: CreateEphemeralServerInput, onProgress: (event: OperationEvent) => void) {
     return call<Server>('create_ephemeral_server', { input, onProgress: progressChannel(onProgress) });

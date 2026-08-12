@@ -1,6 +1,7 @@
 import { useStore } from '../state/store';
 import type { Server } from '../types';
-import { IconPlus, IconBlock } from '../components/Icons';
+import { IconPlus } from '../components/Icons';
+import ServerIcon from '../components/ServerIcon';
 import { formatUptime, formatRelative, formatMegabytes, statusLabels, statusTone, isBusy, softwareLabel } from '../format';
 import { Callout, Sparkline, Spinner } from '../components/ui';
 import AddServerWizard from './AddServerWizard';
@@ -121,7 +122,7 @@ function ServerRow({ server }: { server: Server }) {
   return (
     <div className="server-row" onClick={() => store.openServer(server.id)}>
       <div className="server-row-icon">
-        <IconBlock size={40} color={server.accent} />
+        <ServerIcon server={server} size={40} />
       </div>
       <div className="server-row-main">
         <div className="server-row-top">

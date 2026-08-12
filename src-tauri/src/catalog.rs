@@ -408,7 +408,7 @@ impl CatalogClient {
             let Some(mut builds) = grouped.remove(&minecraft) else {
                 continue;
             };
-            builds.sort_by(|left, right| version_cmp(right, left));
+            builds.sort_by(|left, right| neoforge_build_cmp(right, left));
             let stable = builds.iter().find(|build| !is_neoforge_experimental(build));
             let experimental = builds.iter().find(|build| is_neoforge_experimental(build));
             if let Some(build) = stable {
@@ -920,6 +920,12 @@ pub(crate) fn neoforge_minecraft_version(build: &str) -> Option<String> {
     if parts.len() < 3 {
         return None;
     }
+    // NeoForge's legacy 1.20.1 Maven metadata contains one unprefixed 47.x
+    // coordinate alongside the normal 1.20.1-47.x coordinates. The loader
+    // major is 47; it is not a Minecraft 1.47 release.
+    if parts[0] == 47 {
+        return Some("1.20.1".into());
+    }
     if parts[0] >= 26 {
         return Some(if parts[2] == 0 {
             format!("{}.{}", parts[0], parts[1])
@@ -932,6 +938,22 @@ pub(crate) fn neoforge_minecraft_version(build: &str) -> Option<String> {
     } else {
         format!("1.{}.{}", parts[0], parts[1])
     })
+}
+
+fn neoforge_build_cmp(left: &str, right: &str) -> std::cmp::Ordering {
+    version_cmp(
+        neoforge_loader_version(left),
+        neoforge_loader_version(right),
+    )
+    .then_with(|| left.cmp(right))
+}
+
+fn neoforge_loader_version(build: &str) -> &str {
+    build
+        .split_once('-')
+        .filter(|(minecraft, _)| minecraft.starts_with("1.20.1"))
+        .map(|(_, loader)| loader)
+        .unwrap_or(build)
 }
 
 fn is_neoforge_experimental(build: &str) -> bool {
@@ -1011,6 +1033,10 @@ mod tests {
             Some("1.20.1")
         );
         assert_eq!(
+            neoforge_minecraft_version("47.1.82").as_deref(),
+            Some("1.20.1")
+        );
+        assert_eq!(
             neoforge_minecraft_version("20.4.251").as_deref(),
             Some("1.20.4")
         );
@@ -1030,5 +1056,17 @@ mod tests {
             neoforge_minecraft_version("26.2.0.57").as_deref(),
             Some("26.2")
         );
+    }
+
+    #[test]
+    fn neoforge_legacy_builds_sort_by_loader_version() {
+        let mut builds = [
+            "1.20.1-47.1.81".to_owned(),
+            "47.1.82".to_owned(),
+            "1.20.1-47.1.106".to_owned(),
+        ];
+        builds.sort_by(|left, right| neoforge_build_cmp(right, left));
+        assert_eq!(builds[0], "1.20.1-47.1.106");
+        assert_eq!(builds[1], "47.1.82");
     }
 }

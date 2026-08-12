@@ -5,6 +5,7 @@ use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::{Child, ChildStdin},
     sync::{Mutex, RwLock},
+    task::JoinHandle,
 };
 
 use crate::{
@@ -178,9 +179,14 @@ impl ProcessManager {
             )
             .await;
 
-        spawn_reader(state.clone(), server_id.into(), stdout, false);
-        spawn_reader(state.clone(), server_id.into(), stderr, true);
-        spawn_monitor(state.clone(), server_id.into(), managed);
+        let stdout_reader = spawn_reader(state.clone(), server_id.into(), stdout, false);
+        let stderr_reader = spawn_reader(state.clone(), server_id.into(), stderr, true);
+        spawn_monitor(
+            state.clone(),
+            server_id.into(),
+            managed,
+            [stdout_reader, stderr_reader],
+        );
         spawn_readiness_probe(state, server_id.into(), server.port);
         Ok(())
     }
@@ -320,16 +326,57 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 #[cfg(not(windows))]
 const CREATE_NO_WINDOW: u32 = 0;
 
-fn spawn_reader<R>(state: Arc<AppState>, server_id: String, reader: R, stderr: bool)
+fn spawn_reader<R>(
+    state: Arc<AppState>,
+    server_id: String,
+    reader: R,
+    stderr: bool,
+) -> JoinHandle<()>
 where
     R: tokio::io::AsyncRead + Unpin + Send + 'static,
 {
     tokio::spawn(async move {
-        let mut lines = BufReader::new(reader).lines();
-        while let Ok(Some(text)) = lines.next_line().await {
-            handle_line(state.clone(), &server_id, text, stderr).await;
+        let mut reader = BufReader::new(reader);
+        let mut bytes = Vec::new();
+        loop {
+            bytes.clear();
+            match reader.read_until(b'\n', &mut bytes).await {
+                Ok(0) => break,
+                Ok(_) => {
+                    let text = decode_output_line(&bytes);
+                    handle_line(state.clone(), &server_id, text, stderr).await;
+                }
+                Err(error) => {
+                    state
+                        .append_console(
+                            &server_id,
+                            LogLine {
+                                id: uuid::Uuid::new_v4().to_string(),
+                                at: now_ms(),
+                                level: LogLevel::Error,
+                                source: "Nooki".into(),
+                                text: format!(
+                                    "The Java console stream ended unexpectedly: {error}"
+                                ),
+                            },
+                        )
+                        .await;
+                    break;
+                }
+            }
         }
-    });
+    })
+}
+
+fn decode_output_line(bytes: &[u8]) -> String {
+    let mut end = bytes.len();
+    if end > 0 && bytes[end - 1] == b'\n' {
+        end -= 1;
+    }
+    if end > 0 && bytes[end - 1] == b'\r' {
+        end -= 1;
+    }
+    String::from_utf8_lossy(&bytes[..end]).into_owned()
 }
 
 async fn handle_line(state: Arc<AppState>, server_id: &str, text: String, stderr: bool) {
@@ -340,6 +387,11 @@ async fn handle_line(state: Arc<AppState>, server_id: &str, text: String, stderr
         now_ms(),
     );
     state.append_console(server_id, line).await;
+
+    if is_fatal_startup_line(&text) {
+        fail_startup(state, server_id, &text).await;
+        return;
+    }
 
     if text.contains("Done (") || text.contains("For help, type") {
         if let Ok(mut server) = state.server(server_id).await {
@@ -478,6 +530,74 @@ async fn handle_line(state: Arc<AppState>, server_id: &str, text: String, stderr
     }
 }
 
+fn is_fatal_startup_line(text: &str) -> bool {
+    let lower = text.to_ascii_lowercase();
+    lower.contains("failed to start the minecraft server")
+        || lower.contains("failed to start minecraft server")
+}
+
+async fn fail_startup(state: Arc<AppState>, server_id: &str, trigger: &str) {
+    let Ok(mut server) = state.server(server_id).await else {
+        return;
+    };
+    if server.status != ServerStatus::Starting {
+        return;
+    }
+
+    let detail = trigger
+        .split_once("]: ")
+        .map(|(_, message)| message)
+        .unwrap_or(trigger)
+        .trim();
+    let message = if detail.is_empty() {
+        "Minecraft reported a fatal error while starting.".to_owned()
+    } else {
+        format!("Minecraft reported a fatal startup error: {detail}")
+    };
+    server.status = ServerStatus::Crashed;
+    server.started_at = None;
+    server.players = 0;
+    server.cpu = 0.0;
+    server.memory = 0.0;
+    server.last_exit = Some(message.clone());
+    server.alerts.retain(|alert| alert.kind != "crash");
+    server.alerts.push(ServerAlert {
+        id: uuid::Uuid::new_v4().to_string(),
+        kind: "crash".into(),
+        title: "Server failed during startup".into(),
+        detail: message.clone(),
+        severity: "error".into(),
+    });
+    let _ = state.save_server(server).await;
+    state
+        .append_console(
+            server_id,
+            LogLine {
+                id: uuid::Uuid::new_v4().to_string(),
+                at: now_ms(),
+                level: LogLevel::Error,
+                source: "Nooki".into(),
+                text: format!("{message} Stopping the remaining Java process."),
+            },
+        )
+        .await;
+
+    if let Err(error) = state.processes.force_stop(server_id).await {
+        state
+            .append_console(
+                server_id,
+                LogLine {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    at: now_ms(),
+                    level: LogLevel::Error,
+                    source: "Nooki".into(),
+                    text: format!("The failed Java process could not be terminated: {error}"),
+                },
+            )
+            .await;
+    }
+}
+
 async fn update_player_count(state: &AppState, server_id: &str, count: u32) {
     if let Ok(mut server) = state.server(server_id).await {
         server.players = count;
@@ -485,7 +605,12 @@ async fn update_player_count(state: &AppState, server_id: &str, count: u32) {
     }
 }
 
-fn spawn_monitor(state: Arc<AppState>, server_id: String, process: ManagedProcess) {
+fn spawn_monitor(
+    state: Arc<AppState>,
+    server_id: String,
+    process: ManagedProcess,
+    output_readers: [JoinHandle<()>; 2],
+) {
     tokio::spawn(async move {
         let exit = loop {
             let result = process.child.lock().await.try_wait();
@@ -495,7 +620,14 @@ fn spawn_monitor(state: Arc<AppState>, server_id: String, process: ManagedProces
                 Err(_) => break None,
             }
         };
-        state.processes.processes.write().await.remove(&server_id);
+        for mut reader in output_readers {
+            if tokio::time::timeout(Duration::from_secs(5), &mut reader)
+                .await
+                .is_err()
+            {
+                reader.abort();
+            }
+        }
         state.shares.stop_runtime(&server_id).await;
         state.players.write().await.remove(&server_id);
         state.emit(AppEvent::PlayersChanged {
@@ -517,26 +649,45 @@ fn spawn_monitor(state: Arc<AppState>, server_id: String, process: ManagedProces
             server.sharing.status = crate::models::SharingStatus::Offline;
             server.sharing.address = None;
             server.sharing.last_error = None;
-            server.alerts.retain(|alert| alert.kind != "stop-timeout");
+            server
+                .alerts
+                .retain(|alert| alert.kind != "stop-timeout" && alert.kind != "crash");
             let code = exit.and_then(|status| status.code());
             if !graceful {
-                let message = format!(
-                    "Java exited unexpectedly{}.",
-                    code.map(|value| format!(" with code {value}"))
-                        .unwrap_or_default()
-                );
+                let lines = state
+                    .console_lines
+                    .read()
+                    .await
+                    .get(&server_id)
+                    .cloned()
+                    .unwrap_or_default();
+                let message = crash_message(code, &lines);
                 server.last_exit = Some(message.clone());
                 server.alerts.push(ServerAlert {
                     id: uuid::Uuid::new_v4().to_string(),
                     kind: "crash".into(),
                     title: "Server stopped unexpectedly".into(),
-                    detail: message,
+                    detail: message.clone(),
                     severity: "error".into(),
                 });
+                state
+                    .append_console(
+                        &server_id,
+                        LogLine {
+                            id: uuid::Uuid::new_v4().to_string(),
+                            at: now_ms(),
+                            level: LogLevel::Error,
+                            source: "Nooki".into(),
+                            text: message,
+                        },
+                    )
+                    .await;
             }
-            server.disk_used = directory_size(Path::new(&server.folder)).await;
+            // Publish the terminal state before slower disk/session cleanup. Otherwise a large
+            // modpack can appear to remain starting after Java has already exited.
             let _ = state.save_server(server.clone()).await;
             if server.ephemeral {
+                state.processes.processes.write().await.remove(&server_id);
                 cleanup_ephemeral_server(&state, &server).await;
                 return;
             }
@@ -595,8 +746,42 @@ fn spawn_monitor(state: Arc<AppState>, server_id: String, process: ManagedProces
                 .write()
                 .await
                 .insert(session.id.clone(), session);
+            let disk_used = directory_size(Path::new(&server.folder)).await;
+            if let Ok(mut current) = state.server(&server_id).await {
+                current.disk_used = disk_used;
+                let _ = state.save_server(current).await;
+            }
         }
+        // Keep the entry until all exit bookkeeping is done. Removal and restart wait on this
+        // map, so they cannot race the final status/session writes and recreate a deleted row.
+        state.processes.processes.write().await.remove(&server_id);
     });
+}
+
+fn crash_message(code: Option<i32>, lines: &[LogLine]) -> String {
+    let cause = lines
+        .iter()
+        .rev()
+        .find(|line| line.text.trim_start().starts_with("Caused by:"))
+        .or_else(|| {
+            lines
+                .iter()
+                .rev()
+                .find(|line| line.level == LogLevel::Error)
+        })
+        .map(|line| line.text.trim())
+        .filter(|text| !text.is_empty())
+        .map(|text| text.strip_prefix("Caused by:").unwrap_or(text).trim())
+        .map(|text| text.chars().take(360).collect::<String>());
+    let mut message = match code {
+        Some(code) => format!("Java exited unexpectedly with code {code}."),
+        None => "Java exited unexpectedly.".into(),
+    };
+    if let Some(cause) = cause {
+        message.push(' ');
+        message.push_str(&cause);
+    }
+    message
 }
 
 fn spawn_readiness_probe(state: Arc<AppState>, server_id: String, port: u16) {
@@ -784,5 +969,48 @@ mod tests {
         assert!(parse_jvm_args("-Xmx4G").is_err());
         assert!(parse_jvm_args("-jar other.jar").is_err());
         assert!(parse_jvm_args("@unsafe-arguments.txt").is_err());
+    }
+
+    #[test]
+    fn keeps_reading_windows_console_bytes_that_are_not_utf8() {
+        assert_eq!(
+            decode_output_line(b"Prominence\x99 II\r\n"),
+            "Prominence� II"
+        );
+    }
+
+    #[test]
+    fn reports_the_root_cause_in_the_crash_message() {
+        let lines = vec![
+            LogLine {
+                id: "failed".into(),
+                at: 1,
+                level: LogLevel::Error,
+                source: "main".into(),
+                text: "Failed to start the minecraft server".into(),
+            },
+            LogLine {
+                id: "cause".into(),
+                at: 2,
+                level: LogLevel::Info,
+                source: "Server".into(),
+                text: "Caused by: client-only mod loaded on a server".into(),
+            },
+        ];
+
+        assert_eq!(
+            crash_message(Some(1), &lines),
+            "Java exited unexpectedly with code 1. client-only mod loaded on a server"
+        );
+    }
+
+    #[test]
+    fn recognizes_a_fatal_minecraft_startup_line() {
+        assert!(is_fatal_startup_line(
+            "[17:41:21] [main/ERROR]: Failed to start the minecraft server"
+        ));
+        assert!(!is_fatal_startup_line(
+            "[17:41:21] [main/WARN]: Failed to load an optional recipe"
+        ));
     }
 }

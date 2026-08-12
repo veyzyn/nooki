@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { useStore } from '../../state/store';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { useConsoleLines, useStore } from '../../state/store';
 import type { Server } from '../../types';
 import { IconSearch, IconX, IconChevronDown } from '../../components/Icons';
 import { Segmented, EmptyState } from '../../components/ui';
@@ -8,6 +8,7 @@ import type { LogLevel } from '../../types';
 import './ConsoleTab.css';
 
 type LevelFilter = 'all' | LogLevel;
+const MAX_RENDERED_LINES = 600;
 
 const levelColors: Record<LogLevel, string> = {
   info: 'var(--text-secondary)',
@@ -15,9 +16,19 @@ const levelColors: Record<LogLevel, string> = {
   error: 'var(--st-crashed)',
 };
 
+const ConsoleLine = memo(function ConsoleLine({ line }: { line: { id: string; at: number; level: LogLevel; source: string; text: string } }) {
+  return (
+    <div className={`log-line level-${line.level}`}>
+      <span className="log-time">{formatClock(line.at)}</span>
+      <span className="log-source">{line.source}</span>
+      <span className="log-text" style={{ color: levelColors[line.level] }}>{line.text}</span>
+    </div>
+  );
+});
+
 export default function ConsoleTab({ server }: { server: Server }) {
   const store = useStore();
-  const lines = store.consoleLines[server.id] ?? [];
+  const lines = useConsoleLines(server.id);
   const [command, setCommand] = useState('');
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all');
@@ -29,17 +40,23 @@ export default function ConsoleTab({ server }: { server: Server }) {
 
   const running = server.status === 'running';
 
-  const filtered = lines.filter((l) => {
-    if (levelFilter !== 'all' && l.level !== levelFilter) return false;
-    if (search && !l.text.toLowerCase().includes(search.toLowerCase()) && !l.source.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return lines.filter((line) => {
+      if (levelFilter !== 'all' && line.level !== levelFilter) return false;
+      if (query && !line.text.toLowerCase().includes(query) && !line.source.toLowerCase().includes(query)) return false;
+      return true;
+    });
+  }, [lines, levelFilter, search]);
+  const renderedLines = useMemo(() => filtered.slice(-MAX_RENDERED_LINES), [filtered]);
 
   useEffect(() => {
-    if (!paused && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [lines, paused]);
+    if (paused || !scrollRef.current) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [renderedLines, paused]);
 
   const sendCommand = () => {
     const cmd = command.trim();
@@ -123,15 +140,7 @@ export default function ConsoleTab({ server }: { server: Server }) {
             description={search ? `Nothing matched "${search}". Try a different filter.` : 'Lines will appear here when the server is running.'}
           />
         ) : (
-          filtered.map((line) => (
-            <div key={line.id} className={`log-line level-${line.level}`}>
-              <span className="log-time">{formatClock(line.at)}</span>
-              <span className="log-source">{line.source}</span>
-              <span className="log-text" style={{ color: levelColors[line.level] }}>
-                {line.text}
-              </span>
-            </div>
-          ))
+          renderedLines.map((line) => <ConsoleLine key={line.id} line={line} />)
         )}
       </div>
 

@@ -1,0 +1,43 @@
+.software-brand-logo {
+  display: block;
+  width: var(--software-logo-size);
+  height: var(--software-logo-size);
+  object-fit: contain;
+}
+
+.server-avatar {
+  display: grid;
+  width: var(--server-avatar-size);
+  height: var(--server-avatar-size);
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius-lg) + 1px);
+  background: var(--muted);
+}
+
+.server-avatar img {
+  display: block;
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+}
+
+.server-avatar.is-custom img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.server-avatar.is-vanilla img,
+.server-avatar.is-neoforge img {
+  width: 78%;
+  height: 78%;
+}
+
+.server-avatar.is-paper img,
+.server-avatar.is-fabric img {
+  width: 82%;
+  height: 82%;
+}

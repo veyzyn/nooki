@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { save } from '@tauri-apps/plugin-dialog';
-import { useStore } from '../../state/store';
+import { useConsoleLines, useStore } from '../../state/store';
 import type { LogLevel, LogSession, Server } from '../../types';
 import { EmptyState, Modal, Segmented } from '../../components/ui';
 import { IconFileText, IconSearch, IconX, IconCopy, IconDownload } from '../../components/Icons';
@@ -35,7 +35,7 @@ export default function LogsTab({ server }: { server: Server }) {
   useEffect(() => { void store.refreshLogs(server.id); }, [server.id, store.refreshLogs]);
 
   /* The live console doubles as the newest session's contents. */
-  const liveLines = store.consoleLines[server.id] ?? [];
+  const liveLines = useConsoleLines(server.id);
 
   const viewerLines = useMemo(() => {
     if (!openSession) return [];

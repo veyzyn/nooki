@@ -1,67 +1,60 @@
-/* Nooki design tokens — dark only */
+/* Compatibility tokens for the existing screens, backed by the shadcn preset. */
 :root {
-  /* Surfaces with richer depth */
-  --bg-app: #080a0c;
-  --bg-sidebar: #0d0f12;
-  --bg-surface: #141619;
-  --bg-surface-2: #1a1d21;
-  --bg-surface-3: #20242a;
-  --bg-inset: #0a0c0e;
-  --bg-hover: rgba(255, 255, 255, 0.06);
-  --bg-active: rgba(255, 255, 255, 0.1);
-  --bg-scrim: rgba(4, 6, 8, 0.85);
-  --bg-glass: rgba(20, 22, 25, 0.7);
+  color-scheme: dark;
 
-  /* Borders with more prominence */
-  --border: rgba(255, 255, 255, 0.09);
-  --border-strong: rgba(255, 255, 255, 0.16);
-  --border-subtle: rgba(255, 255, 255, 0.04);
+  --bg-app: var(--background);
+  --bg-sidebar: var(--sidebar);
+  --bg-surface: var(--card);
+  --bg-surface-2: var(--secondary);
+  --bg-surface-3: color-mix(in oklab, var(--secondary) 82%, var(--foreground) 4%);
+  --bg-inset: color-mix(in oklab, var(--background) 88%, black);
+  --bg-hover: color-mix(in oklab, var(--foreground) 6%, transparent);
+  --bg-active: color-mix(in oklab, var(--foreground) 10%, transparent);
+  --bg-scrim: color-mix(in oklab, black 58%, transparent);
+  --bg-glass: color-mix(in oklab, var(--popover) 88%, transparent);
 
-  /* Text with better hierarchy */
-  --text: #f0f3f6;
-  --text-secondary: #b4bcc4;
-  --text-muted: #7a8591;
-  --text-faint: #54606c;
-  --text-on-accent: #0a2814;
+  --border-strong: color-mix(in oklab, var(--foreground) 18%, transparent);
+  --border-subtle: color-mix(in oklab, var(--foreground) 6%, transparent);
 
-  /* Accent with glow potential */
-  --accent: #5fb87f;
-  --accent-hover: #70c790;
-  --accent-press: #4fa36e;
-  --accent-soft: rgba(95, 184, 127, 0.16);
-  --accent-soft-strong: rgba(95, 184, 127, 0.28);
-  --accent-ring: rgba(95, 184, 127, 0.4);
-  --accent-glow: rgba(95, 184, 127, 0.25);
-  --accent-glow-strong: rgba(95, 184, 127, 0.5);
+  --text: var(--foreground);
+  --text-secondary: color-mix(in oklab, var(--foreground) 76%, transparent);
+  --text-muted: var(--muted-foreground);
+  --text-faint: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+  --text-on-accent: var(--primary-foreground);
 
-  /* Status with enhanced vibrancy */
-  --st-running: #52c987;
-  --st-running-bg: rgba(82, 201, 135, 0.15);
-  --st-stopped: #8a94a0;
-  --st-stopped-bg: rgba(138, 148, 160, 0.12);
-  --st-warning: #e6b563;
-  --st-warning-bg: rgba(230, 181, 99, 0.15);
-  --st-updating: #6ba8e6;
-  --st-updating-bg: rgba(107, 168, 230, 0.15);
-  --st-crashed: #e67872;
-  --st-crashed-bg: rgba(230, 120, 114, 0.15);
-  --st-info: #8c98e6;
-  --st-info-bg: rgba(140, 152, 230, 0.15);
+  --accent-hover: color-mix(in oklab, var(--primary) 88%, white);
+  --accent-press: color-mix(in oklab, var(--primary) 82%, black);
+  --accent-soft: color-mix(in oklab, var(--primary) 13%, transparent);
+  --accent-soft-strong: color-mix(in oklab, var(--primary) 20%, transparent);
+  --accent-ring: color-mix(in oklab, var(--primary) 34%, transparent);
+  --accent-glow: transparent;
+  --accent-glow-strong: transparent;
 
-  --danger: #e67872;
-  --danger-hover: #f08880;
-  --danger-soft: rgba(230, 120, 114, 0.15);
+  --st-running: oklch(0.72 0.15 159);
+  --st-running-bg: color-mix(in oklab, var(--st-running) 12%, transparent);
+  --st-stopped: var(--muted-foreground);
+  --st-stopped-bg: color-mix(in oklab, var(--muted-foreground) 10%, transparent);
+  --st-warning: oklch(0.76 0.14 77);
+  --st-warning-bg: color-mix(in oklab, var(--st-warning) 12%, transparent);
+  --st-updating: oklch(0.72 0.11 240);
+  --st-updating-bg: color-mix(in oklab, var(--st-updating) 12%, transparent);
+  --st-crashed: var(--destructive);
+  --st-crashed-bg: color-mix(in oklab, var(--destructive) 12%, transparent);
+  --st-info: oklch(0.72 0.1 290);
+  --st-info-bg: color-mix(in oklab, var(--st-info) 12%, transparent);
 
-  /* Radius with more variation */
-  --r-xs: 5px;
-  --r-sm: 7px;
-  --r-md: 10px;
-  --r-lg: 14px;
-  --r-xl: 18px;
-  --r-2xl: 24px;
+  --danger: var(--destructive);
+  --danger-hover: color-mix(in oklab, var(--destructive) 86%, white);
+  --danger-soft: color-mix(in oklab, var(--destructive) 12%, transparent);
+
+  --r-xs: calc(var(--radius) * 0.55);
+  --r-sm: var(--radius-sm);
+  --r-md: var(--radius-md);
+  --r-lg: var(--radius-lg);
+  --r-xl: var(--radius-xl);
+  --r-2xl: var(--radius-2xl);
   --r-pill: 999px;
 
-  /* Spacing scale */
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
@@ -72,12 +65,8 @@
   --s-8: 40px;
   --s-9: 56px;
 
-  /* Type */
-  --font: "Inter", "Segoe UI Variable Text", "Segoe UI", -apple-system,
-    BlinkMacSystemFont, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Cascadia Mono", "SF Mono", Consolas,
-    "Liberation Mono", monospace;
-
+  --font: "Manrope Variable", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-base: 13px;
@@ -87,26 +76,23 @@
   --fs-2xl: 24px;
   --fs-3xl: 30px;
 
-  /* Elevation with depth and glow */
-  --sh-sm: 0 2px 6px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.25);
-  --sh-md: 0 8px 20px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
-  --sh-lg: 0 24px 64px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
-  --sh-xl: 0 32px 80px rgba(0, 0, 0, 0.7), 0 8px 24px rgba(0, 0, 0, 0.5);
-  --sh-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04), inset 0 -1px 0 rgba(0, 0, 0, 0.2);
-  --sh-glow: 0 0 20px rgba(95, 184, 127, 0.3), 0 0 40px rgba(95, 184, 127, 0.15);
-  --sh-glow-strong: 0 0 30px rgba(95, 184, 127, 0.4), 0 0 60px rgba(95, 184, 127, 0.2);
+  --sh-sm: 0 1px 2px color-mix(in oklab, black 22%, transparent);
+  --sh-md: 0 8px 24px color-mix(in oklab, black 24%, transparent);
+  --sh-lg: 0 18px 48px color-mix(in oklab, black 38%, transparent);
+  --sh-xl: 0 24px 64px color-mix(in oklab, black 48%, transparent);
+  --sh-inset: none;
+  --sh-glow: none;
+  --sh-glow-strong: none;
 
-  /* Restrained motion: quick feedback without bounce or overshoot */
   --ease: cubic-bezier(0.2, 0, 0, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-spring: cubic-bezier(0.2, 0, 0, 1);
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --dur-fast: 100ms;
-  --dur: 160ms;
-  --dur-slow: 220ms;
-  --dur-slower: 280ms;
+  --dur-fast: 90ms;
+  --dur: 140ms;
+  --dur-slow: 180ms;
+  --dur-slower: 220ms;
 
-  /* Layout */
-  --sidebar-w: 232px;
+  --sidebar-w: 224px;
   --topbar-h: 38px;
 }

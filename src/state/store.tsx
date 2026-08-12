@@ -1,5 +1,5 @@
 import {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
+  createContext, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from 'react';
 import { api } from '../api/tauri';
 import type {
@@ -28,7 +28,7 @@ interface StoreValue {
   serverTab: ServerTab; setServerTab: (tab: ServerTab) => void;
   servers: Server[]; players: Player[]; rosters: Record<string, ServerRoster>; backups: Backup[];
   ephemeralServer: Server | null;
-  schedules: Record<string, BackupSchedule>; activity: ActivityEvent[]; consoleLines: Record<string, LogLine[]>;
+  schedules: Record<string, BackupSchedule>; activity: ActivityEvent[];
   settings: AppSettings; relayAccess: RelayAccess; activateRelay: (activationKey: string) => Promise<void>; host: HostInfo; javaRuntimes: JavaRuntime[]; logSessions: LogSession[]; appVersion: string;
   refreshLogs: (serverId: string) => Promise<void>; readLog: (sessionId: string) => Promise<LogLine[]>; exportLog: (sessionId: string, destination: string) => Promise<void>;
   detectJava: () => Promise<void>; installJava: (major: number, onProgress: (event: OperationEvent) => void) => Promise<JavaRuntime>; removeJava: (id: string) => Promise<void>;
@@ -41,6 +41,7 @@ interface StoreValue {
   importServer: (input: ImportServerInput, onProgress: (event: OperationEvent) => void) => Promise<Server>;
   listVersions: (type: ServerType, includeExperimental: boolean) => Promise<VersionCatalog>;
   scanServerFolder: (path: string) => Promise<ImportScan>;
+  loadServerIcon: (path: string) => Promise<string>;
   scanEphemeralWorld: (path: string) => Promise<EphemeralWorldScan>;
   createEphemeralServer: (input: CreateEphemeralServerInput, onProgress: (event: OperationEvent) => void) => Promise<Server>;
   removeServer: (id: string, mode: 'forget' | 'recycle', confirmation?: string) => Promise<void>;
@@ -94,6 +95,7 @@ const emptySettings: AppSettings = {
 const emptyHost: HostInfo = { totalMemory: 0, usedMemory: 0, cpu: 0, diskTotal: 0, diskUsed: 0 };
 const emptyRelayAccess: RelayAccess = { activated: false, serversAllowed: 0 };
 const StoreContext = createContext<StoreValue | null>(null);
+const ConsoleContext = createContext<Record<string, LogLine[]>>({});
 
 function errorMessage(error: unknown) {
   if (typeof error === 'object' && error && 'message' in error) return String((error as { message: unknown }).message);
@@ -129,6 +131,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [quitDialog, setQuitDialog] = useState<'closed' | 'tray' | 'quit'>('closed');
   const [wizardOpen, setWizardOpen] = useState(false);
   const timers = useRef<number[]>([]);
+  const pendingConsoleLines = useRef<Record<string, LogLine[]>>({});
+  const consoleFlushTimer = useRef<number | null>(null);
+
+  const flushConsoleLines = useCallback(() => {
+    consoleFlushTimer.current = null;
+    const pending = pendingConsoleLines.current;
+    pendingConsoleLines.current = {};
+    if (Object.keys(pending).length === 0) return;
+    startTransition(() => {
+      setConsoleLines((current) => {
+        let next: Record<string, LogLine[]> | null = null;
+        for (const [serverId, incoming] of Object.entries(pending)) {
+          const existing = current[serverId] ?? [];
+          const ids = new Set(existing.map((line) => line.id));
+          const unique: LogLine[] = [];
+          for (const line of incoming) {
+            if (ids.has(line.id)) continue;
+            ids.add(line.id);
+            unique.push(line);
+          }
+          if (unique.length > 0) {
+            next ??= { ...current };
+            next[serverId] = [...existing, ...unique].slice(-2000);
+          }
+        }
+        return next ?? current;
+      });
+    });
+  }, []);
 
   const pushToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = uid('toast');
@@ -151,19 +182,34 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           ? current.map((server) => server.id === message.data.id ? message.data : server)
           : [...current, message.data]);
         break;
+      case 'serverMetrics': {
+        const { serverId, cpu, memory, diskUsed, sample } = message.data;
+        const applyMetrics = (server: Server): Server => {
+          if (server.id !== serverId) return server;
+          const cutoff = sample.at - 3_600_000;
+          const history = server.history
+            .filter((item) => item.at >= cutoff && item.at !== sample.at)
+            .concat(sample)
+            .sort((left, right) => left.at - right.at);
+          return { ...server, cpu, memory, diskUsed, history };
+        };
+        setServers((current) => current.map(applyMetrics));
+        setEphemeralServer((current) => current ? applyMetrics(current) : null);
+        break;
+      }
       case 'serverRemoved':
         setServers((current) => current.filter((server) => server.id !== message.data.serverId));
         setEphemeralServer((current) => current?.id === message.data.serverId ? null : current);
         setOpenServerId((current) => current === message.data.serverId ? null : current);
         break;
       case 'consoleLine':
-        setConsoleLines((current) => {
-          const lines = current[message.data.serverId] ?? [];
-          if (lines.some((line) => line.id === message.data.line.id)) return current;
-          return { ...current, [message.data.serverId]: [...lines, message.data.line].slice(-2000) };
-        });
+        (pendingConsoleLines.current[message.data.serverId] ??= []).push(message.data.line);
+        if (consoleFlushTimer.current === null) {
+          consoleFlushTimer.current = window.setTimeout(flushConsoleLines, 50);
+        }
         break;
       case 'consoleCleared':
+        delete pendingConsoleLines.current[message.data.serverId];
         setConsoleLines((current) => ({ ...current, [message.data.serverId]: [] }));
         break;
       case 'playersChanged':
@@ -182,7 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       case 'runtimesChanged': setJavaRuntimes(message.data); break;
       case 'quitRequested': setQuitDialog('quit'); break;
     }
-  }, []);
+  }, [flushConsoleLines]);
 
   useEffect(() => {
     let cancelled = false;
@@ -203,7 +249,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setJavaRuntimes(snapshot.javaRuntimes); setLogSessions(snapshot.logSessions); setAppVersion(snapshot.appVersion);
       setReady(true);
     }).catch((error: AppError) => { if (!cancelled) setInitError(error); });
-    return () => { cancelled = true; timers.current.forEach(window.clearTimeout); };
+    return () => {
+      cancelled = true;
+      timers.current.forEach(window.clearTimeout);
+      if (consoleFlushTimer.current !== null) window.clearTimeout(consoleFlushTimer.current);
+      consoleFlushTimer.current = null;
+      pendingConsoleLines.current = {};
+    };
   }, [initAttempt, onEvent]);
 
   const setNav = useCallback((view: NavView) => { setNavState(view); if (view !== 'servers') setOpenServerId(null); }, []);
@@ -309,13 +361,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreValue>(() => ({
     ready, initError, retryInitialize: () => setInitAttempt((value) => value + 1),
     nav, setNav, openServerId, openServer, closeServer, serverTab, setServerTab,
-    servers, ephemeralServer, players, rosters, backups, schedules, activity, consoleLines, settings, relayAccess, activateRelay, host, javaRuntimes, logSessions, appVersion,
+    servers, ephemeralServer, players, rosters, backups, schedules, activity, settings, relayAccess, activateRelay, host, javaRuntimes, logSessions, appVersion,
     refreshLogs, readLog: api.readLog, exportLog: api.exportLog,
     detectJava, installJava, removeJava,
     toasts, dismissToast,
     startServer: (id) => action(id, 'start'), stopServer: (id) => action(id, 'stop'), restartServer: (id) => action(id, 'restart'), forceStopServer: (id) => action(id, 'forceStop'),
     createServer, searchModpacks: api.searchModpacks, listModpackVersions: api.listModpackVersions,
-    createModpackServer: api.createModpackServer, importServer, listVersions: api.listVersions, scanServerFolder: api.scanServerFolder,
+    createModpackServer: api.createModpackServer, importServer, listVersions: api.listVersions, scanServerFolder: api.scanServerFolder, loadServerIcon: api.loadServerIcon,
     scanEphemeralWorld: api.scanEphemeralWorld, createEphemeralServer,
     removeServer, revealPath, patchServer, dismissAlert, sendCommand, clearConsole,
     kickPlayer: (serverId, playerId) => { const name = playerName(serverId, playerId); if (name) playerAction(serverId, 'kick', name); },
@@ -347,17 +399,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     quit: (force = false) => api.quit(force), wizardOpen, setWizardOpen, pushToast, updateToast, logActivity,
   }), [
     ready, initError, nav, setNav, openServerId, openServer, closeServer, serverTab, servers, ephemeralServer, players, rosters, backups,
-    schedules, activity, consoleLines, settings, host, javaRuntimes, logSessions, appVersion, toasts, dismissToast,
+    schedules, activity, settings, host, javaRuntimes, logSessions, appVersion, toasts, dismissToast,
     action, createServer, createEphemeralServer, importServer, removeServer,
     revealPath, patchServer, dismissAlert, sendCommand, clearConsole, playerName, playerAction, rosterName, backupFlow,
     startBackup, restoreFlow, startRestore, deleteBackup, setSchedule, updateFlow, beginUpdate, runUpdate, patchSettings,
     restartRequired, quitDialog, wizardOpen, pushToast, updateToast, logActivity, refreshLogs, detectJava, installJava, removeJava, relayAccess, activateRelay,
   ]);
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return <StoreContext.Provider value={value}><ConsoleContext.Provider value={consoleLines}>{children}</ConsoleContext.Provider></StoreContext.Provider>;
 }
 
 export function useStore(): StoreValue {
   const store = useContext(StoreContext);
   if (!store) throw new Error('useStore must be used inside StoreProvider');
   return store;
+}
+
+export function useConsoleLines(serverId: string): LogLine[] {
+  return useContext(ConsoleContext)[serverId] ?? [];
 }
