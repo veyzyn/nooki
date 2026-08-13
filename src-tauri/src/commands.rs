@@ -1041,10 +1041,9 @@ async fn import(
         jar_path: path_string(&jar),
         accent: accent_for(&id),
         icon_data,
-        motd: properties
-            .get("motd")
-            .unwrap_or("A Minecraft Server")
-            .into(),
+        motd: crate::properties::unescape_motd(
+            properties.get("motd").unwrap_or("A Minecraft Server"),
+        ),
         game_mode: properties.get("gamemode").unwrap_or("survival").into(),
         difficulty: properties.get("difficulty").unwrap_or("normal").into(),
         pvp: properties.get("pvp").unwrap_or("true") == "true",

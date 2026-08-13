@@ -463,14 +463,14 @@ export function chartDomainMax(data: number[], floor = 10): number {
 
 /* ------------------------------ Avatar ------------------------------ */
 
-export function Avatar({ name, color, size = 32 }: { name: string; color: string; size?: number }) {
+export function Avatar({ name, color, image, size = 32 }: { name: string; color: string; image?: string | null; size?: number }) {
   return (
     <span
       className="avatar"
       style={{ width: size, height: size, background: color, fontSize: size * 0.4 }}
       aria-hidden="true"
     >
-      {name.slice(0, 1).toUpperCase()}
+      {image ? <img src={image} alt="" /> : name.slice(0, 1).toUpperCase()}
     </span>
   );
 }

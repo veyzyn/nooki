@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { open as openFile } from '@tauri-apps/plugin-dialog';
 import { useStore } from '../../state/store';
-import type { PluginCatalog, PluginFile, PluginProject, Server } from '../../types';
+import type { AddonVersionOption, PluginCatalog, PluginFile, PluginProject, Server } from '../../types';
 import { ConfirmDialog, EmptyState, Segmented, Spinner } from '../../components/ui';
-import { IconCheck, IconDownload, IconPlug, IconRefresh, IconSearch, IconTrash, IconX } from '../../components/Icons';
+import { IconCheck, IconDownload, IconPlug, IconPlus, IconRefresh, IconSearch, IconTrash, IconX } from '../../components/Icons';
 import { formatBytes, formatRelative } from '../../format';
+import AddonVersionDialog from './AddonVersionDialog';
 import './PluginsTab.css';
 
 type Mode = 'installed' | 'browse';
@@ -23,6 +25,7 @@ export default function PluginsTab({ server }: { server: Server }) {
   const [plugins, setPlugins] = useState<PluginFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [changing, setChanging] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PluginFile | null>(null);
   const [query, setQuery] = useState('');
@@ -32,6 +35,11 @@ export default function PluginsTab({ server }: { server: Server }) {
   const [installing, setInstalling] = useState<string | null>(null);
   const [installProgress, setInstallProgress] = useState(0);
   const [operationId, setOperationId] = useState<string | null>(null);
+  const [versionTarget, setVersionTarget] = useState<PluginProject | null>(null);
+  const [versions, setVersions] = useState<AddonVersionOption[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState('');
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionError, setVersionError] = useState('');
   const searchSequence = useRef(0);
   const editable = server.status === 'stopped' || server.status === 'crashed';
   const running = server.status === 'running';
@@ -86,6 +94,30 @@ export default function PluginsTab({ server }: { server: Server }) {
     }
   };
 
+  const addFiles = async () => {
+    const selected = await openFile({
+      multiple: true,
+      directory: false,
+      title: 'Add plugin JARs',
+      filters: [{ name: 'Plugin JARs', extensions: ['jar'] }],
+    });
+    const paths = typeof selected === 'string' ? [selected] : selected ?? [];
+    if (paths.length === 0) return;
+    setAdding(true);
+    try {
+      setPlugins(await store.addPluginFiles(server.id, paths));
+      store.pushToast({
+        tone: 'success',
+        title: `${paths.length} plugin${paths.length === 1 ? '' : 's'} added`,
+        detail: running ? 'The files were copied. Restart the server to load them.' : 'The files were copied into this server.',
+      });
+    } catch (error) {
+      store.pushToast({ tone: 'error', title: 'Plugins were not added', detail: messageFrom(error) });
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const remove = async () => {
     if (!deleteTarget) return;
     const target = deleteTarget;
@@ -101,12 +133,29 @@ export default function PluginsTab({ server }: { server: Server }) {
     }
   };
 
-  const install = async (project: PluginProject) => {
+  const chooseVersion = async (project: PluginProject) => {
+    setVersionTarget(project);
+    setVersions([]);
+    setSelectedVersionId('');
+    setVersionError('');
+    setVersionsLoading(true);
+    try {
+      const options = await store.listPluginVersions(server.id, project.namespace, project.slug);
+      setVersions(options);
+      setSelectedVersionId(options.find((version) => version.releaseType.toLowerCase() === 'release')?.id ?? options[0]?.id ?? '');
+    } catch (error) {
+      setVersionError(messageFrom(error));
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
+  const install = async (project: PluginProject, versionId: string) => {
     setInstalling(`${project.namespace}/${project.slug}`);
     setInstallProgress(0);
     setOperationId(null);
     try {
-      const next = await store.installPlugin(server.id, project.namespace, project.slug, (event) => {
+      const next = await store.installPlugin(server.id, project.namespace, project.slug, versionId, (event) => {
         setOperationId(event.data.operationId);
         if (event.event === 'progress') setInstallProgress(event.data.progress ?? 0);
       });
@@ -152,10 +201,16 @@ export default function PluginsTab({ server }: { server: Server }) {
           ]}
         />
         {mode === 'installed' && (
-          <button className="btn btn-secondary btn-sm" disabled={refreshing} onClick={() => void refresh(true)}>
-            {refreshing ? <Spinner size={12} /> : <IconRefresh size={13} />}
-            Refresh
-          </button>
+          <div className="plugin-toolbar-actions">
+            <button className="btn btn-secondary btn-sm" disabled={!installable || adding} onClick={() => void addFiles()}>
+              {adding ? <Spinner size={12} /> : <IconPlus size={13} />}
+              Add plugins
+            </button>
+            <button className="btn btn-secondary btn-sm" disabled={refreshing || adding} onClick={() => void refresh(true)}>
+              {refreshing ? <Spinner size={12} /> : <IconRefresh size={13} />}
+              Refresh
+            </button>
+          </div>
         )}
         {mode === 'browse' && (
           <div className="plugin-search">
@@ -239,7 +294,7 @@ export default function PluginsTab({ server }: { server: Server }) {
                   <span className="plugin-meta">{compactNumber(project.downloads)} downloads · {compactNumber(project.stars)} stars · updated {formatRelative(project.lastUpdated)}</span>
                   {busy && <div className="plugin-install-progress"><span style={{ width: `${installProgress}%` }} /></div>}
                 </div>
-                <button className={`btn btn-sm ${busy ? 'btn-secondary' : installed ? 'btn-secondary plugin-installed-btn' : 'btn-primary'}`} disabled={installed || !installable || (installing !== null && !busy) || (busy && !operationId)} onClick={() => busy && operationId ? void store.cancelOperation(operationId) : void install(project)}>
+                <button className={`btn btn-sm ${busy ? 'btn-secondary' : installed ? 'btn-secondary plugin-installed-btn' : 'btn-primary'}`} disabled={installed || !installable || (installing !== null && !busy) || (busy && !operationId)} onClick={() => busy && operationId ? void store.cancelOperation(operationId) : void chooseVersion(project)}>
                   {busy ? <IconX size={12} /> : installed ? <IconCheck size={13} /> : <IconDownload size={13} />}
                   {busy ? 'Cancel' : installed ? 'Installed' : 'Install'}
                 </button>
@@ -266,6 +321,24 @@ export default function PluginsTab({ server }: { server: Server }) {
         notes={deleteTarget ? [deleteTarget.fileName, 'The change takes effect the next time the server starts.'] : undefined}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => void remove()}
+      />
+      <AddonVersionDialog
+        open={versionTarget !== null}
+        projectName={versionTarget?.name ?? 'plugin'}
+        kind="plugin"
+        versions={versions}
+        selectedId={selectedVersionId}
+        loading={versionsLoading}
+        error={versionError}
+        onSelect={setSelectedVersionId}
+        onClose={() => setVersionTarget(null)}
+        onInstall={() => {
+          if (!versionTarget || !selectedVersionId) return;
+          const project = versionTarget;
+          const versionId = selectedVersionId;
+          setVersionTarget(null);
+          void install(project, versionId);
+        }}
       />
     </div>
   );

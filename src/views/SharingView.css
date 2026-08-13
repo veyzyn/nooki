@@ -9,10 +9,10 @@
 
 .quick-world {
   flex: 0 0 auto;
-  margin-bottom: var(--s-6);
-  border: 1px solid rgba(95, 184, 127, 0.2);
+  margin-bottom: 0;
+  border: 1px solid var(--border);
   border-radius: var(--r-lg);
-  background: var(--bg-surface);
+  background: var(--card);
   overflow: hidden;
 }
 
@@ -21,13 +21,14 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--s-5);
-  padding: var(--s-5);
+  padding: var(--s-5) var(--s-5) 18px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .quick-world-kicker {
   display: block;
   margin-bottom: 5px;
-  color: var(--accent);
+  color: color-mix(in oklab, var(--primary) 62%, white);
   font-size: 10px;
   font-weight: 750;
   letter-spacing: .09em;
@@ -44,7 +45,7 @@
 .quick-world-heading p {
   margin-top: 5px;
   max-width: 650px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: var(--fs-sm);
   line-height: 1.5;
 }
@@ -54,8 +55,8 @@
   padding: 5px 9px;
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
-  color: var(--text-secondary);
-  background: var(--bg-surface-2);
+  color: var(--foreground);
+  background: var(--secondary);
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
 }
@@ -66,29 +67,35 @@
   flex-direction: column;
   justify-content: center;
   flex: 0 0 auto;
-  min-height: 188px;
-  margin: 0 var(--s-4) var(--s-4);
+  min-height: 196px;
+  margin: var(--s-4);
   padding: var(--s-5);
-  border: 1px dashed var(--border-strong);
+  border: 1px dashed color-mix(in oklab, var(--foreground) 20%, transparent);
   border-radius: var(--r-md);
-  background: var(--bg-inset);
+  background: color-mix(in oklab, var(--background) 76%, var(--card));
   text-align: center;
   transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
 }
 
+.quick-world-drop:hover {
+  border-color: color-mix(in oklab, var(--primary) 38%, var(--border));
+  background: color-mix(in oklab, var(--primary) 4%, var(--background));
+}
+
 .quick-world-drop.is-dragging {
-  border-color: var(--accent);
+  border-color: var(--primary);
   background: var(--accent-soft);
 }
 
 .quick-world-drop-icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   margin-bottom: var(--s-3);
   border-radius: var(--r-md);
-  color: var(--accent);
+  border: 1px solid color-mix(in oklab, var(--primary) 24%, transparent);
+  color: color-mix(in oklab, var(--primary) 62%, white);
   background: var(--accent-soft);
 }
 
@@ -100,7 +107,7 @@
 
 .quick-world-drop > span {
   margin-top: 5px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: var(--fs-xs);
 }
 
@@ -379,39 +386,6 @@
   background: transparent;
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
-}
-
-.sharing-intro {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s-3);
-  padding: var(--s-4) 0 var(--s-5);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.sharing-intro-icon {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-radius: var(--r-sm);
-}
-
-.sharing-intro strong {
-  color: var(--text);
-  font-size: var(--fs-md);
-  font-weight: 650;
-}
-
-.sharing-intro p {
-  margin-top: 3px;
-  max-width: 720px;
-  color: var(--text-muted);
-  font-size: var(--fs-sm);
-  line-height: 1.5;
 }
 
 @media (max-width: 760px) {

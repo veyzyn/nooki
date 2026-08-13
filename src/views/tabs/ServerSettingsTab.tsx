@@ -3,6 +3,7 @@ import { useStore } from '../../state/store';
 import type { Server } from '../../types';
 import { Callout, Field, Select, Toggle } from '../../components/ui';
 import { formatMegabytes } from '../../format';
+import { MotdEditor } from '../../components/MotdEditor';
 import './ServerSettingsTab.css';
 
 interface Draft {
@@ -25,7 +26,7 @@ interface Draft {
 function draftFrom(server: Server): Draft {
   return {
     name: server.name,
-    motd: server.motd,
+    motd: server.motd.replace(/\\u00a7/gi, '§').replace(/\\n/g, '\n'),
     gameMode: server.gameMode,
     difficulty: server.difficulty,
     maxPlayers: server.maxPlayers,
@@ -83,7 +84,8 @@ export default function ServerSettingsTab({ server }: { server: Server }) {
     if (draft.minMemory >= draft.maxMemory) e.maxMemory = 'Maximum memory must be higher than the minimum.';
     else if (draft.maxMemory > 12288) e.maxMemory = 'That is more than this computer can spare.';
 
-    if (!draft.motd.trim()) e.motd = 'The message shown in the server list cannot be empty.';
+    if (!draft.motd.replace(/§[0-9a-fk-or]/gi, '').trim()) e.motd = 'The message shown in the server list cannot be empty.';
+    else if (draft.motd.split('\n').length > 2) e.motd = 'The server list message can use up to two lines.';
     if (draft.vanity && !/^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/.test(draft.vanity)) {
       e.vanity = 'Use 3–32 lowercase letters, numbers, or hyphens.';
     }
@@ -194,7 +196,7 @@ export default function ServerSettingsTab({ server }: { server: Server }) {
           restartHint
           hint="Players see this under the server name in their Minecraft client."
         >
-          <input className="input" value={draft.motd} onChange={(e) => patch({ motd: e.target.value })} />
+          <MotdEditor value={draft.motd} onChange={(motd) => patch({ motd })} />
         </Field>
 
         <div className="two-col">

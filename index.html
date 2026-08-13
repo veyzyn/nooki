@@ -6,10 +6,94 @@
     <meta name="description" content="A simple local Minecraft server manager for Windows." />
     <link rel="icon" type="image/svg+xml" href="/src/assets/nooki-logo.svg" />
     <title>Nooki</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #09090b;
+      }
+
+      #nooki-startup {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: grid;
+        place-items: center;
+        background: #09090b;
+        color: #fafafa;
+        font-family: "Manrope Variable", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+        opacity: 1;
+        transition: opacity 160ms ease-out;
+      }
+
+      #nooki-startup.is-ready {
+        pointer-events: none;
+        opacity: 0;
+      }
+
+      .nooki-startup-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        transform: translateY(-8px);
+      }
+
+      .nooki-startup-logo {
+        width: 58px;
+        height: 58px;
+        filter: drop-shadow(0 8px 18px rgb(0 0 0 / 24%));
+      }
+
+      .nooki-startup-name {
+        margin-top: 1px;
+        font-size: 18px;
+        font-weight: 680;
+        letter-spacing: -0.02em;
+      }
+
+      .nooki-startup-status {
+        color: #a1a1aa;
+        font-size: 11px;
+        font-weight: 520;
+      }
+
+      .nooki-startup-spinner {
+        width: 20px;
+        height: 20px;
+        margin-top: 2px;
+        color: #5fb87f;
+        animation: nooki-startup-spin 800ms linear infinite;
+      }
+
+      @keyframes nooki-startup-spin {
+        to { transform: rotate(360deg); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        #nooki-startup { transition: none; }
+        .nooki-startup-spinner { animation: none; }
+      }
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
+    <div id="nooki-startup" role="status" aria-live="polite" aria-label="Nooki is starting">
+      <div class="nooki-startup-content">
+        <svg class="nooki-startup-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+          <rect width="28" height="28" rx="6" fill="#1c2c25" />
+          <rect x="1" y="1" width="26" height="26" rx="5.5" stroke="#2c5239" />
+          <path d="M7.5 20.5v-13l13 13v-13" stroke="#5fb87f" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div class="nooki-startup-name">Nooki</div>
+        <div class="nooki-startup-status">Loading your servers</div>
+        <svg class="nooki-startup-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" stroke="#27272a" stroke-width="2" />
+          <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+        </svg>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

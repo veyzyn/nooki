@@ -11,6 +11,8 @@
   flex-shrink: 0;
 }
 
+.plugin-toolbar-actions { display: flex; align-items: center; gap: var(--s-2); }
+
 .plugin-search {
   width: min(380px, 48%);
   height: 34px;
@@ -132,8 +134,8 @@
 .plugin-source-tag {
   padding: 1px 6px;
   border-radius: var(--r-pill);
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: color-mix(in oklab, var(--st-running) 14%, transparent);
+  color: color-mix(in oklab, var(--st-running) 82%, var(--foreground));
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
@@ -210,3 +212,12 @@
 .manual-mod-file { display: grid; gap: 5px; }
 .manual-mod-file > span { color: var(--text-muted); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em; }
 .manual-mod-file code { overflow: hidden; padding: var(--s-2) var(--s-3); border: 1px solid var(--border-subtle); border-radius: var(--r-sm); background: var(--bg-inset); color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+
+.addon-version-dialog { display: flex; min-height: 94px; flex-direction: column; gap: var(--s-4); }
+.addon-version-loading { display: flex; min-height: 94px; align-items: center; justify-content: center; gap: var(--s-2); color: var(--text-secondary); font-size: var(--fs-sm); }
+.addon-version-error { padding: var(--s-3); border: 1px solid color-mix(in oklab, var(--destructive) 30%, var(--border)); border-radius: var(--r-md); background: color-mix(in oklab, var(--destructive) 9%, var(--card)); color: var(--destructive); font-size: var(--fs-sm); line-height: 1.45; }
+.addon-version-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); overflow: hidden; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); }
+.addon-version-details > span { display: flex; min-width: 0; flex-direction: column; gap: 3px; padding: var(--s-3); }
+.addon-version-details > span + span { border-left: 1px solid var(--border); }
+.addon-version-details small { color: var(--text-muted); font-size: var(--fs-xs); }
+.addon-version-details strong { overflow: hidden; color: var(--text); font-size: var(--fs-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }

@@ -57,7 +57,13 @@ export interface RelayAccess {
 export interface HostInfo { totalMemory: number; usedMemory: number; cpu: number; diskTotal: number; diskUsed: number }
 export interface Toast { id: string; tone: 'success' | 'error' | 'warning' | 'info' | 'progress'; title: string; detail?: string; progress?: number; sticky?: boolean }
 export type NavView = 'dashboard' | 'servers' | 'backups' | 'quick-server' | 'settings';
-export type ServerTab = 'overview' | 'console' | 'players' | 'plugins' | 'mods' | 'worlds' | 'databases' | 'settings' | 'logs' | 'backups';
+export type ServerTab = 'overview' | 'console' | 'players' | 'plugins' | 'mods' | 'worlds' | 'files' | 'databases' | 'settings' | 'logs' | 'backups';
+
+export interface ServerFileEntry {
+  name: string; path: string; kind: 'file' | 'directory'; size: number; modifiedAt: number; editable: boolean;
+}
+export interface ServerFileListing { path: string; entries: ServerFileEntry[] }
+export interface ServerTextFile { path: string; content: string; language: string; size: number; modifiedAt: number }
 
 export type DatabaseKind = 'mysql' | 'postgresql' | 'mongodb' | 'redis';
 export type DatabaseStatus = 'running' | 'stopped' | 'creating' | 'error' | 'missing';
@@ -100,6 +106,11 @@ export interface PluginProject {
   downloads: number; stars: number; lastUpdated: number;
 }
 export interface PluginCatalog { projects: PluginProject[]; total: number; offset: number; hasMore: boolean }
+
+export interface AddonVersionOption {
+  id: string; version: string; releaseType: string; publishedAt: number;
+  fileName?: string | null; automatic: boolean;
+}
 
 export type ModProvider = 'modrinth' | 'curseforge';
 export interface ModMetadata {

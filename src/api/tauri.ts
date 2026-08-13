@@ -4,7 +4,7 @@ import type {
   CreateDatabaseInput, DatabaseEnvironment, ManagedDatabase,
   WorldEntry, WorldSettingsInput,
   CreateEphemeralServerInput, CreateServerInput, EphemeralWorldScan, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, OperationEvent,
-  CreateModpackServerInput, ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, PlayerActionInput, PluginCatalog, PluginFile, Server, ServerSettingsInput, ServerType, VersionCatalog,
+  AddonVersionOption, CreateModpackServerInput, ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, PlayerActionInput, PluginCatalog, PluginFile, Server, ServerFileListing, ServerSettingsInput, ServerTextFile, ServerType, VersionCatalog,
 } from '../types';
 
 function call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
@@ -35,6 +35,7 @@ export const api = {
   },
   scanServerFolder(path: string) { return call<ImportScan>('scan_server_folder', { path }); },
   loadServerIcon(path: string) { return call<string>('load_server_icon', { path }); },
+  loadPlayerAvatar(identifier: string) { return call<string | null>('load_player_avatar', { identifier }); },
   scanEphemeralWorld(path: string) { return call<EphemeralWorldScan>('scan_ephemeral_world', { path }); },
   createEphemeralServer(input: CreateEphemeralServerInput, onProgress: (event: OperationEvent) => void) {
     return call<Server>('create_ephemeral_server', { input, onProgress: progressChannel(onProgress) });
@@ -90,10 +91,16 @@ export const api = {
   deletePlugin(serverId: string, fileName: string) {
     return call<PluginFile[]>('delete_plugin', { serverId, fileName });
   },
+  addPluginFiles(serverId: string, paths: string[]) {
+    return call<PluginFile[]>('add_plugin_files', { serverId, paths });
+  },
   searchPlugins(query: string, offset = 0) { return call<PluginCatalog>('search_plugins', { query, offset }); },
   loadPluginIcon(projectId: number) { return call<string | null>('load_plugin_icon', { projectId }); },
-  installPlugin(serverId: string, namespace: string, slug: string, onProgress: (event: OperationEvent) => void) {
-    return call<PluginFile[]>('install_plugin', { serverId, namespace, slug, onProgress: progressChannel(onProgress) });
+  listPluginVersions(serverId: string, namespace: string, slug: string) {
+    return call<AddonVersionOption[]>('list_plugin_versions', { serverId, namespace, slug });
+  },
+  installPlugin(serverId: string, namespace: string, slug: string, versionId: string, onProgress: (event: OperationEvent) => void) {
+    return call<PluginFile[]>('install_plugin', { serverId, namespace, slug, versionId, onProgress: progressChannel(onProgress) });
   },
   listMods(serverId: string) { return call<ModFile[]>('list_mods', { serverId }); },
   setModEnabled(serverId: string, fileName: string, enabled: boolean) {
@@ -102,14 +109,20 @@ export const api = {
   deleteMod(serverId: string, fileName: string) {
     return call<ModFile[]>('delete_mod', { serverId, fileName });
   },
+  addModFiles(serverId: string, paths: string[]) {
+    return call<ModFile[]>('add_mod_files', { serverId, paths });
+  },
   searchMods(provider: ModProvider, loader: 'fabric' | 'forge' | 'neoforge', gameVersion: string, query: string, offset = 0) {
     return call<ModCatalog>('search_mods', { provider, loader, gameVersion, query, offset });
   },
   loadModIcon(provider: ModProvider, iconUrl: string) {
     return call<string | null>('load_mod_icon', { provider, iconUrl });
   },
-  installMod(serverId: string, provider: ModProvider, projectId: string, onProgress: (event: OperationEvent) => void) {
-    return call<ModInstallResult>('install_mod', { serverId, provider, projectId, onProgress: progressChannel(onProgress) });
+  listModVersions(serverId: string, provider: ModProvider, projectId: string) {
+    return call<AddonVersionOption[]>('list_mod_versions', { serverId, provider, projectId });
+  },
+  installMod(serverId: string, provider: ModProvider, projectId: string, versionId: string, onProgress: (event: OperationEvent) => void) {
+    return call<ModInstallResult>('install_mod', { serverId, provider, projectId, versionId, onProgress: progressChannel(onProgress) });
   },
   checkManualModDownload(token: string) { return call<ModInstallResult>('check_manual_mod_download', { token }); },
   cancelManualModDownload(token: string) { return call<void>('cancel_manual_mod_download', { token }); },
@@ -124,6 +137,13 @@ export const api = {
   },
   deleteDatabase(id: string) { return call<void>('delete_database', { id }); },
   listWorlds(serverId: string) { return call<WorldEntry[]>('list_worlds', { serverId }); },
+  listServerFiles(serverId: string, path: string) { return call<ServerFileListing>('list_server_files', { serverId, path }); },
+  readServerTextFile(serverId: string, path: string) { return call<ServerTextFile>('read_server_text_file', { serverId, path }); },
+  saveServerTextFile(serverId: string, path: string, content: string) { return call<ServerTextFile>('save_server_text_file', { serverId, path, content }); },
+  createServerFile(serverId: string, parentPath: string, name: string) { return call<void>('create_server_file', { serverId, parentPath, name }); },
+  createServerFolder(serverId: string, parentPath: string, name: string) { return call<void>('create_server_folder', { serverId, parentPath, name }); },
+  renameServerFile(serverId: string, path: string, name: string) { return call<void>('rename_server_file', { serverId, path, name }); },
+  deleteServerFile(serverId: string, path: string) { return call<void>('delete_server_file', { serverId, path }); },
   saveWorldSettings(serverId: string, worldId: string, input: WorldSettingsInput) {
     return call<WorldEntry[]>('save_world_settings', { serverId, worldId, input });
   },

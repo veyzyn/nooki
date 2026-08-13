@@ -146,18 +146,6 @@ fn normalize_process_cpu(raw_cpu: f32, logical_cpu_count: usize) -> f32 {
     (raw_cpu / logical_cpu_count.max(1) as f32).clamp(0.0, 100.0)
 }
 
-#[cfg(test)]
-mod metric_tests {
-    use super::normalize_process_cpu;
-
-    #[test]
-    fn process_cpu_is_normalized_to_whole_machine_usage() {
-        assert_eq!(normalize_process_cpu(800.0, 16), 50.0);
-        assert_eq!(normalize_process_cpu(20.0, 0), 20.0);
-        assert_eq!(normalize_process_cpu(2_000.0, 8), 100.0);
-    }
-}
-
 fn spawn_scheduler(state: Arc<AppState>) {
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(Duration::from_secs(3)).await;
@@ -259,4 +247,16 @@ fn spawn_update_checks(state: Arc<AppState>) {
             tokio::time::sleep(Duration::from_secs(24 * 60 * 60)).await;
         }
     });
+}
+
+#[cfg(test)]
+mod metric_tests {
+    use super::normalize_process_cpu;
+
+    #[test]
+    fn process_cpu_is_normalized_to_whole_machine_usage() {
+        assert_eq!(normalize_process_cpu(800.0, 16), 50.0);
+        assert_eq!(normalize_process_cpu(20.0, 0), 20.0);
+        assert_eq!(normalize_process_cpu(2_000.0, 8), 100.0);
+    }
 }

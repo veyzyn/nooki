@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{Read, Write},
     path::{Component, Path, PathBuf},
@@ -72,6 +72,17 @@ pub struct ModCatalog {
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ModVersionOption {
+    id: String,
+    version: String,
+    release_type: String,
+    published_at: i64,
+    file_name: String,
+    automatic: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ManualModDownload {
     token: String,
     project_name: String,
@@ -140,7 +151,10 @@ struct ModrinthUser {
 
 #[derive(Debug, Deserialize)]
 struct ModrinthVersion {
+    id: String,
     version_number: String,
+    version_type: String,
+    date_published: String,
     files: Vec<ModrinthFile>,
 }
 
@@ -197,6 +211,7 @@ struct CurseFile {
     display_name: String,
     file_name: String,
     release_type: u8,
+    file_date: String,
     download_url: Option<String>,
     hashes: Vec<CurseHash>,
 }
@@ -281,6 +296,50 @@ pub async fn delete_mod(
 }
 
 #[tauri::command]
+pub async fn add_mod_files(
+    state: SharedState<'_>,
+    server_id: String,
+    paths: Vec<String>,
+) -> CommandResult<Vec<ModFile>> {
+    if paths.is_empty() {
+        return Err(Error::Validation("Choose at least one mod JAR.".into()).into());
+    }
+    let lock = state.operation_lock(&server_id);
+    let _guard = lock.lock().await;
+    let server = installable_modded_server(state.inner(), &server_id).await?;
+    let directory = mod_directory(&server);
+    tokio::fs::create_dir_all(&directory)
+        .await
+        .map_err(Error::from)?;
+    let copied = tokio::task::spawn_blocking(move || {
+        copy_mod_files(paths.into_iter().map(PathBuf::from).collect(), &directory)
+    })
+    .await
+    .map_err(|error| Error::Internal(error.to_string()))??;
+    if state.processes.is_running(&server_id).await {
+        add_restart_alert(
+            state.inner(),
+            &server_id,
+            "Restart the server to load the newly added mods.",
+        )
+        .await?;
+    }
+    state
+        .activity(
+            "settings",
+            Some(&server),
+            format!(
+                "Added {copied} mod{} from local files",
+                if copied == 1 { "" } else { "s" }
+            ),
+        )
+        .await?;
+    list_for_server(state.inner(), &server_id)
+        .await
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
 pub async fn search_mods(
     provider: String,
     loader: String,
@@ -305,11 +364,61 @@ pub async fn load_mod_icon(provider: String, icon_url: String) -> CommandResult<
 }
 
 #[tauri::command]
+pub async fn list_mod_versions(
+    state: SharedState<'_>,
+    server_id: String,
+    provider: String,
+    project_id: String,
+) -> CommandResult<Vec<ModVersionOption>> {
+    let server = modded_server(state.inner(), &server_id).await?;
+    let versions: Vec<ModVersionOption> = match provider.as_str() {
+        "modrinth" => compatible_modrinth_versions(&server, &project_id)
+            .await?
+            .into_iter()
+            .filter_map(|version| {
+                let file_name = preferred_modrinth_file(&version)?.filename.clone();
+                Some(ModVersionOption {
+                    id: version.id,
+                    version: version.version_number,
+                    release_type: version.version_type,
+                    published_at: parse_date(&version.date_published),
+                    file_name,
+                    automatic: true,
+                })
+            })
+            .collect(),
+        "curseforge" => compatible_curse_files(&server, &project_id)
+            .await?
+            .into_iter()
+            .map(|file| ModVersionOption {
+                id: file.id.to_string(),
+                version: file.display_name,
+                release_type: curse_release_type(file.release_type).into(),
+                published_at: parse_date(&file.file_date),
+                file_name: file.file_name,
+                automatic: file.download_url.is_some(),
+            })
+            .collect(),
+        _ => return Err(Error::Validation("Choose Modrinth or CurseForge.".into()).into()),
+    };
+    if versions.is_empty() {
+        return Err(Error::NotFound(format!(
+            "No compatible releases were found for {} {}.",
+            loader_name(&server)?,
+            server.version
+        ))
+        .into());
+    }
+    Ok(versions)
+}
+
+#[tauri::command]
 pub async fn install_mod(
     state: SharedState<'_>,
     server_id: String,
     provider: String,
     project_id: String,
+    version_id: String,
     on_progress: Channel<OperationEvent>,
 ) -> CommandResult<ModInstallResult> {
     install_from_provider(
@@ -317,6 +426,7 @@ pub async fn install_mod(
         server_id,
         provider,
         project_id,
+        version_id,
         &on_progress,
     )
     .await
@@ -464,11 +574,88 @@ async fn search_curseforge(
     })
 }
 
+async fn compatible_modrinth_versions(
+    server: &Server,
+    project_id: &str,
+) -> Result<Vec<ModrinthVersion>> {
+    validate_project_id(project_id)?;
+    let loader = loader_name(server)?;
+    http_client()?
+        .get(format!("{MODRINTH_API}/project/{project_id}/version"))
+        .query(&[
+            ("loaders", serde_json::to_string(&vec![loader])?),
+            (
+                "game_versions",
+                serde_json::to_string(&vec![server.version.as_str()])?,
+            ),
+            ("include_changelog", "false".into()),
+        ])
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await
+        .map_err(Error::from)
+}
+
+async fn compatible_curse_files(server: &Server, project_id: &str) -> Result<Vec<CurseFile>> {
+    let project_number = project_id
+        .parse::<u64>()
+        .map_err(|_| Error::Validation("Invalid CurseForge project identifier.".into()))?;
+    let loader = loader_name(server)?;
+    let mut index = 0u32;
+    let mut files = Vec::new();
+    loop {
+        let index_value = index.to_string();
+        let response: CurseResponse<Vec<CurseFile>> =
+            curse_request(format!("{CURSEFORGE_API}/mods/{project_number}/files"))?
+                .query(&[
+                    ("gameVersion", server.version.as_str()),
+                    ("modLoaderType", curse_loader(loader)),
+                    ("index", index_value.as_str()),
+                    ("pageSize", "50"),
+                ])
+                .send()
+                .await?
+                .error_for_status()?
+                .json()
+                .await?;
+        let received = response.data.len() as u32;
+        let total = response
+            .pagination
+            .as_ref()
+            .map_or(u64::from(index + received), |page| page.total_count);
+        files.extend(response.data);
+        index = index.saturating_add(received);
+        if received == 0 || u64::from(index) >= total {
+            break;
+        }
+    }
+    Ok(files)
+}
+
+fn preferred_modrinth_file(version: &ModrinthVersion) -> Option<&ModrinthFile> {
+    version
+        .files
+        .iter()
+        .find(|file| file.primary)
+        .or_else(|| version.files.first())
+}
+
+fn curse_release_type(value: u8) -> &'static str {
+    match value {
+        1 => "release",
+        2 => "beta",
+        _ => "alpha",
+    }
+}
+
 async fn install_from_provider(
     state: Arc<AppState>,
     server_id: String,
     provider: String,
     project_id: String,
+    version_id: String,
     progress: &Channel<OperationEvent>,
 ) -> Result<ModInstallResult> {
     let lock = state.operation_lock(&server_id);
@@ -484,9 +671,27 @@ async fn install_from_provider(
         "Finding a compatible mod release",
     );
     match provider.as_str() {
-        "modrinth" => install_modrinth(state, server, project_id, progress, &operation_id).await,
+        "modrinth" => {
+            install_modrinth(
+                state,
+                server,
+                project_id,
+                version_id,
+                progress,
+                &operation_id,
+            )
+            .await
+        }
         "curseforge" => {
-            install_curseforge(state, server, project_id, progress, &operation_id).await
+            install_curseforge(
+                state,
+                server,
+                project_id,
+                version_id,
+                progress,
+                &operation_id,
+            )
+            .await
         }
         _ => Err(Error::Validation("Choose Modrinth or CurseForge.".into())),
     }
@@ -496,10 +701,12 @@ async fn install_modrinth(
     state: Arc<AppState>,
     server: Server,
     project_id: String,
+    version_id: String,
     progress: &Channel<OperationEvent>,
     operation_id: &str,
 ) -> Result<ModInstallResult> {
     validate_project_id(&project_id)?;
+    validate_project_id(&version_id)?;
     let loader = loader_name(&server)?;
     let project: ModrinthProjectDetail = http_client()?
         .get(format!("{MODRINTH_API}/project/{project_id}"))
@@ -508,32 +715,17 @@ async fn install_modrinth(
         .error_for_status()?
         .json()
         .await?;
-    let versions: Vec<ModrinthVersion> = http_client()?
-        .get(format!("{MODRINTH_API}/project/{project_id}/version"))
-        .query(&[
-            ("loaders", serde_json::to_string(&vec![loader])?),
-            (
-                "game_versions",
-                serde_json::to_string(&vec![server.version.as_str()])?,
-            ),
-            ("include_changelog", "false".into()),
-        ])
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-    let version = versions.into_iter().next().ok_or_else(|| {
-        Error::NotFound(format!(
-            "{} has no release for {} {}.",
-            project.title, loader, server.version
-        ))
-    })?;
-    let file = version
-        .files
-        .iter()
-        .find(|file| file.primary)
-        .or_else(|| version.files.first())
+    let versions = compatible_modrinth_versions(&server, &project_id).await?;
+    let version = versions
+        .into_iter()
+        .find(|version| version.id == version_id)
+        .ok_or_else(|| {
+            Error::NotFound(format!(
+                "That {} release is not compatible with {} {}.",
+                project.title, loader, server.version
+            ))
+        })?;
+    let file = preferred_modrinth_file(&version)
         .ok_or_else(|| Error::NotFound("That release contains no downloadable JAR.".into()))?;
     validate_download_url("modrinth", &file.url)?;
     let author = modrinth_team_author(&project.team).await;
@@ -546,7 +738,7 @@ async fn install_modrinth(
         name: project.title,
         description: project.description,
         author,
-        version: version.version_number,
+        version: version.version_number.clone(),
         icon_url: project.icon_url,
         website_url: format!("https://modrinth.com/mod/{}", project.slug),
     };
@@ -589,12 +781,16 @@ async fn install_curseforge(
     state: Arc<AppState>,
     server: Server,
     project_id: String,
+    version_id: String,
     progress: &Channel<OperationEvent>,
     operation_id: &str,
 ) -> Result<ModInstallResult> {
     let project_number = project_id
         .parse::<u64>()
         .map_err(|_| Error::Validation("Invalid CurseForge project identifier.".into()))?;
+    let requested_file = version_id
+        .parse::<u64>()
+        .map_err(|_| Error::Validation("Invalid CurseForge version identifier.".into()))?;
     let loader = loader_name(&server)?;
     let project: CurseResponse<CurseProject> =
         curse_request(format!("{CURSEFORGE_API}/mods/{project_number}"))?
@@ -603,25 +799,13 @@ async fn install_curseforge(
             .error_for_status()?
             .json()
             .await?;
-    let files: CurseResponse<Vec<CurseFile>> =
-        curse_request(format!("{CURSEFORGE_API}/mods/{project_number}/files"))?
-            .query(&[
-                ("gameVersion", server.version.as_str()),
-                ("modLoaderType", curse_loader(loader)),
-                ("pageSize", "50"),
-            ])
-            .send()
-            .await?
-            .error_for_status()?
-            .json()
-            .await?;
+    let files = compatible_curse_files(&server, &project_id).await?;
     let file = files
-        .data
         .iter()
-        .min_by_key(|file| file.release_type)
+        .find(|file| file.id == requested_file)
         .ok_or_else(|| {
             Error::NotFound(format!(
-                "{} has no release for {} {}.",
+                "That {} release is not compatible with {} {}.",
                 project.data.name, loader, server.version
             ))
         })?;
@@ -1016,6 +1200,78 @@ fn read_mod_directory(directory: &Path) -> Result<Vec<ModFile>> {
     Ok(mods)
 }
 
+fn copy_mod_files(sources: Vec<PathBuf>, directory: &Path) -> Result<usize> {
+    if sources.len() > 128 {
+        return Err(Error::Validation(
+            "Choose no more than 128 mod files at once.".into(),
+        ));
+    }
+    let mut names = HashSet::new();
+    let mut copies = Vec::with_capacity(sources.len());
+    for source in sources {
+        if !source.is_file() {
+            return Err(Error::NotFound(format!(
+                "Mod file not found: {}",
+                source.display()
+            )));
+        }
+        let name = source
+            .file_name()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| Error::Validation("A selected mod has an invalid file name.".into()))?;
+        if !name.to_ascii_lowercase().ends_with(".jar") {
+            return Err(Error::Validation(format!("{name} is not a mod JAR.")));
+        }
+        if !names.insert(name.to_ascii_lowercase()) {
+            return Err(Error::Conflict(format!(
+                "The selection contains more than one file named {name}."
+            )));
+        }
+        let size = std::fs::metadata(&source)?.len();
+        if size > MAX_MOD_BYTES {
+            return Err(Error::Validation(format!("{name} is larger than 512 MiB.")));
+        }
+        zip::ZipArchive::new(File::open(&source)?)
+            .map_err(|_| Error::Validation(format!("{name} is not a valid JAR archive.")))?;
+        let target = safe_mod_path(directory, name)?;
+        let disabled = safe_mod_path(directory, &format!("{name}.disabled"))?;
+        if target.exists() || disabled.exists() {
+            return Err(Error::Conflict(format!("{name} is already installed.")));
+        }
+        copies.push((source, target));
+    }
+    let mut created = Vec::with_capacity(copies.len());
+    for (source, target) in copies {
+        if let Err(error) = std::fs::copy(&source, &target) {
+            for path in &created {
+                let _ = std::fs::remove_file(path);
+            }
+            return Err(error.into());
+        }
+        created.push(target);
+    }
+    Ok(created.len())
+}
+
+async fn add_restart_alert(state: &Arc<AppState>, server_id: &str, detail: &str) -> Result<()> {
+    let mut server = state.server(server_id).await?;
+    if !server
+        .alerts
+        .iter()
+        .any(|alert| alert.kind == "restart-required")
+    {
+        server.alerts.push(ServerAlert {
+            id: uuid::Uuid::new_v4().to_string(),
+            kind: "restart-required".into(),
+            title: "Restart required".into(),
+            detail: detail.into(),
+            severity: "info".into(),
+        });
+        state.save_server(server).await?;
+    }
+    Ok(())
+}
+
 async fn editable_modded_server(state: &Arc<AppState>, id: &str) -> Result<Server> {
     let server = modded_server(state, id).await?;
     if state.processes.is_running(id).await
@@ -1160,23 +1416,31 @@ async fn load_icon(provider: &str, icon_url: &str) -> Result<Option<String>> {
             "That mod logo is unexpectedly large.".into(),
         ));
     }
-    let mime = response
-        .headers()
-        .get(reqwest::header::CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(';').next())
-        .filter(|value| matches!(*value, "image/webp" | "image/png" | "image/jpeg"))
-        .unwrap_or("image/png")
-        .to_owned();
     let bytes = response.bytes().await?;
     if bytes.len() as u64 > MAX_ICON_BYTES {
         return Err(Error::Validation(
             "That mod logo is unexpectedly large.".into(),
         ));
     }
-    let data = Some(format!("data:{mime};base64,{}", BASE64.encode(bytes)));
+    // Some catalog CDN responses omit their content type or label WebP bytes as PNG. The
+    // server icon validator checks magic bytes, so derive the data URL from those same bytes.
+    // Unsupported images simply fall back to the server software icon.
+    let data = catalog_icon_mime(&bytes)
+        .map(|mime| format!("data:{mime};base64,{}", BASE64.encode(bytes)));
     cache.write().await.insert(icon_url.into(), data.clone());
     Ok(data)
+}
+
+fn catalog_icon_mime(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(b"\x89PNG\r\n\x1a\n") {
+        Some("image/png")
+    } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
+        Some("image/jpeg")
+    } else if bytes.len() >= 12 && bytes.starts_with(b"RIFF") && &bytes[8..12] == b"WEBP" {
+        Some("image/webp")
+    } else {
+        None
+    }
 }
 
 fn validate_icon_url(provider: &str, value: &str) -> Result<()> {
@@ -1269,6 +1533,23 @@ mod tests {
     use super::*;
 
     #[test]
+    fn catalog_icon_type_comes_from_image_bytes() {
+        assert_eq!(
+            catalog_icon_mime(b"\x89PNG\r\n\x1a\nrest"),
+            Some("image/png")
+        );
+        assert_eq!(
+            catalog_icon_mime(&[0xff, 0xd8, 0xff, 0xe0]),
+            Some("image/jpeg")
+        );
+        assert_eq!(
+            catalog_icon_mime(b"RIFF\x04\x00\x00\x00WEBP"),
+            Some("image/webp")
+        );
+        assert_eq!(catalog_icon_mime(b"<html>not an image</html>"), None);
+    }
+
+    #[test]
     fn recognizes_enabled_and_disabled_mods() {
         assert!(is_mod_file("fabric-api.jar"));
         assert!(is_mod_file("fabric-api.jar.disabled"));
@@ -1306,5 +1587,32 @@ mod tests {
         .unwrap();
         assert_eq!(project.id, "1bokaNcj");
         assert_eq!(project.team, "9lteWJca");
+    }
+
+    #[test]
+    fn manual_mod_import_copies_every_file_and_keeps_sources() {
+        let root = tempfile::tempdir().unwrap();
+        let source = root.path().join("source");
+        let mods = root.path().join("mods");
+        std::fs::create_dir_all(&source).unwrap();
+        std::fs::create_dir_all(&mods).unwrap();
+        let first = source.join("First.jar");
+        let second = source.join("Second.jar");
+        for path in [&first, &second] {
+            let file = File::create(path).unwrap();
+            let mut jar = zip::ZipWriter::new(file);
+            jar.start_file("fabric.mod.json", zip::write::SimpleFileOptions::default())
+                .unwrap();
+            jar.write_all(b"{}").unwrap();
+            jar.finish().unwrap();
+        }
+        assert_eq!(
+            copy_mod_files(vec![first.clone(), second.clone()], &mods).unwrap(),
+            2
+        );
+        assert!(first.exists());
+        assert!(second.exists());
+        assert!(mods.join("First.jar").is_file());
+        assert!(mods.join("Second.jar").is_file());
     }
 }

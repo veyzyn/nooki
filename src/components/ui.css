@@ -32,12 +32,12 @@
 .custom-select-trigger:hover:not(:disabled) { background: color-mix(in oklab, var(--input) 64%, transparent); }
 .custom-select.is-disabled { opacity: .5; }
 
-.segmented { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--radius-xl); background: color-mix(in oklab, var(--muted) 70%, transparent); }
+.segmented { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid color-mix(in oklab, var(--primary) 16%, var(--border)); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--primary) 7%, var(--card)); }
 .segmented.is-full { display: flex; }
 .segmented.is-full .segmented-btn { flex: 1; }
 .segmented-btn { height: 27px; padding: 0 11px; border-radius: var(--radius-lg); color: var(--muted-foreground); font-size: 11px; font-weight: 600; transition: background-color var(--dur), color var(--dur), box-shadow var(--dur); }
 .segmented-btn:hover { color: var(--foreground); }
-.segmented-btn.active { background: var(--background); color: var(--foreground); box-shadow: 0 1px 2px color-mix(in oklab, black 22%, transparent); }
+.segmented-btn.active { background: color-mix(in oklab, var(--primary) 24%, var(--card)); color: color-mix(in oklab, var(--primary) 32%, var(--foreground)); box-shadow: none; }
 
 .progress { display: flex; width: 100%; gap: 0; }
 .progress [data-slot="progress-track"] { height: 5px; background: var(--muted); }
@@ -73,7 +73,8 @@
 .metric-chart-x { position: relative; height: 24px; color: var(--muted-foreground); font-size: 9px; font-variant-numeric: tabular-nums; }
 .metric-chart-x span { position: absolute; top: 6px; white-space: nowrap; }
 
-.avatar { display: inline-grid; flex: 0 0 auto; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-lg); color: white; font-weight: 650; }
+.avatar { display: inline-grid; flex: 0 0 auto; place-items: center; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); color: white; font-weight: 650; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .menu-hint { margin-left: auto; color: var(--muted-foreground); font-size: 10px; }
 
 .empty { display: flex; width: 100%; min-height: 220px; flex-direction: column; align-items: center; justify-content: center; padding: 28px; text-align: center; }

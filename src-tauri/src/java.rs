@@ -100,13 +100,14 @@ pub async fn detect_runtimes(
 }
 
 pub async fn inspect_java(path: &Path) -> Result<(String, u32, String)> {
-    let output = tokio::process::Command::new(path)
+    let mut command = tokio::process::Command::new(path);
+    command
         .arg("-version")
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await?;
+        .stderr(Stdio::piped());
+    hide_window(&mut command);
+    let output = command.output().await?;
     if !output.status.success() {
         return Err(Error::Validation(format!(
             "{} could not be started.",
@@ -155,6 +156,16 @@ pub async fn inspect_java(path: &Path) -> Result<(String, u32, String)> {
         .to_owned();
     Ok((version, major, architecture))
 }
+
+#[cfg(windows)]
+fn hide_window(command: &mut tokio::process::Command) {
+    use std::os::windows::process::CommandExt;
+
+    command.as_std_mut().creation_flags(0x08000000);
+}
+
+#[cfg(not(windows))]
+fn hide_window(_command: &mut tokio::process::Command) {}
 
 pub async fn install_temurin(
     major: u32,

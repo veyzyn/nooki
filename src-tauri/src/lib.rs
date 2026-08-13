@@ -1,3 +1,4 @@
+mod avatars;
 mod backups;
 mod catalog;
 mod commands;
@@ -6,6 +7,7 @@ mod databases;
 mod db;
 mod ephemeral;
 mod error;
+mod files;
 mod java;
 mod models;
 mod modpacks;
@@ -159,6 +161,7 @@ pub fn run() {
             commands::change_server_software,
             commands::cancel_operation,
             commands::load_server_icon,
+            avatars::load_player_avatar,
             commands::quit_application,
             databases::database_environment,
             databases::list_databases,
@@ -171,17 +174,28 @@ pub fn run() {
             worlds::delete_world,
             ephemeral::scan_ephemeral_world,
             ephemeral::create_ephemeral_server,
+            files::list_server_files,
+            files::read_server_text_file,
+            files::save_server_text_file,
+            files::create_server_file,
+            files::create_server_folder,
+            files::rename_server_file,
+            files::delete_server_file,
             plugins::list_plugins,
             plugins::set_plugin_enabled,
             plugins::delete_plugin,
+            plugins::add_plugin_files,
             plugins::search_plugins,
             plugins::load_plugin_icon,
+            plugins::list_plugin_versions,
             plugins::install_plugin,
             mods::list_mods,
             mods::set_mod_enabled,
             mods::delete_mod,
+            mods::add_mod_files,
             mods::search_mods,
             mods::load_mod_icon,
+            mods::list_mod_versions,
             mods::install_mod,
             mods::check_manual_mod_download,
             mods::cancel_manual_mod_download,

@@ -23,10 +23,16 @@
 .panel-note {
   padding: var(--s-4);
   background: var(--st-info-bg);
-  border-bottom: 1px solid rgba(127, 139, 214, 0.18);
+  border: 1px solid color-mix(in oklab, var(--st-info) 22%, var(--border));
+  border-radius: var(--r-md);
   font-size: var(--fs-sm);
   color: var(--text-secondary);
   line-height: 1.5;
+}
+
+.players-panel > .panel-note {
+  border-width: 0 0 1px;
+  border-radius: 0;
 }
 
 .player-list {

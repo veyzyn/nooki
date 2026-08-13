@@ -206,6 +206,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
       - name: Download Windows executable
         uses: actions/download-artifact@v7
         with:
@@ -250,9 +253,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="$GITHUB_REF_NAME"
+          version="${tag#v}"
           asset="artifacts/Nooki-Windows-x64.exe"
+
+          awk -v heading="## [$version]" '
+            $0 == heading { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "$asset" --clobber
+            gh release edit "$tag" --title "Nooki $tag" --notes-file release-notes.md
           else
-            gh release create "$tag" "$asset" --verify-tag --generate-notes --title "Nooki $tag"
+            gh release create "$tag" "$asset" --verify-tag --title "Nooki $tag" --notes-file release-notes.md
           fi

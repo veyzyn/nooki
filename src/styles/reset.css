@@ -7,18 +7,20 @@
 
 html {
   font-size: 16px;
+  font-family: var(--font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 body {
-  font-family: var(--font);
+  font-family: inherit;
   font-size: var(--fs-base);
   line-height: 1.5;
   color: var(--text);
   background: var(--bg-app);
   overflow: hidden;
+  user-select: none;
 }
 
 button,
@@ -32,7 +34,16 @@ select {
 button {
   background: none;
   border: none;
-  cursor: pointer;
+  cursor: default;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+.console-output,
+.quick-console,
+.logs-panel {
+  user-select: text;
 }
 
 a {

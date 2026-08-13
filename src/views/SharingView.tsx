@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { IconCloud, IconCopy } from '../components/Icons';
+import { IconCloud, IconCopy, IconUpload } from '../components/Icons';
 import { Select, Spinner } from '../components/ui';
 import { formatClock } from '../format';
 import { useConsoleLines, useStore } from '../state/store';
@@ -29,16 +29,6 @@ export default function QuickServerView() {
 
       <div className="dash-body sharing-body">
         <QuickWorldDrop />
-
-        <div className="sharing-intro">
-          <span className="sharing-intro-icon"><IconCloud size={20} /></span>
-          <div>
-            <strong>{store.relayAccess.activated ? 'No router setup' : 'Ready on this computer'}</strong>
-            <p>{store.relayAccess.activated
-              ? 'Nooki detects the map version, configures a 4 GB server, and returns a temporary public address through the relay.'
-              : 'Nooki detects the map version and configures a 4 GB local server. Relay activation is only needed for a public address.'}</p>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -168,7 +158,7 @@ function QuickWorldDrop() {
           onDragOver={(event) => { event.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
         >
-          <div className="quick-world-drop-icon"><IconCloud size={25} /></div>
+          <div className="quick-world-drop-icon"><IconUpload size={22} /></div>
           <strong>Drop a world folder or ZIP here</strong>
           <span>Nested wrapper folders in ZIP files are handled automatically.</span>
           <div className="quick-world-actions">

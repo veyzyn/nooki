@@ -1,4 +1,13 @@
-use std::{collections::HashMap, path::Path, process::Stdio, sync::Arc, time::Duration};
+use std::{
+    collections::HashMap,
+    path::Path,
+    process::Stdio,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
 use regex::Regex;
 use tokio::{
@@ -27,6 +36,7 @@ struct ManagedProcess {
     port: u16,
     session_id: String,
     started_at: i64,
+    stop_requested: Arc<AtomicBool>,
 }
 
 pub struct ProcessManager {
@@ -148,6 +158,7 @@ impl ProcessManager {
             port: server.port,
             session_id: session_id.clone(),
             started_at: now_ms(),
+            stop_requested: Arc::new(AtomicBool::new(false)),
         };
         self.processes
             .write()
@@ -226,6 +237,10 @@ impl ProcessManager {
             .get(server_id)
             .cloned()
             .ok_or_else(|| Error::Conflict("The server is not running.".into()))?;
+        // Shutdown hooks in modded servers can emit fatal-looking errors and sometimes leave
+        // background threads alive. Keep the user's intent with the process so a later forced
+        // termination still completes as a requested stop rather than a crash.
+        process.stop_requested.store(true, Ordering::Release);
         let mut server = state.server(server_id).await?;
         server.status = ServerStatus::Stopping;
         state.save_server(server).await?;
@@ -635,7 +650,8 @@ fn spawn_monitor(
             players: Vec::new(),
         });
         if let Ok(mut server) = state.server(&server_id).await {
-            let graceful = server.status == ServerStatus::Stopping
+            let graceful = process.stop_requested.load(Ordering::Acquire)
+                || server.status == ServerStatus::Stopping
                 || server.status == ServerStatus::Restarting;
             server.status = if graceful {
                 ServerStatus::Stopped

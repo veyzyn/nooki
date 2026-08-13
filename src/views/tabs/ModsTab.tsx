@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { open as openFile } from '@tauri-apps/plugin-dialog';
 import { useStore } from '../../state/store';
-import type { ManualModDownload, ModCatalog, ModFile, ModProject, ModProvider, Server } from '../../types';
+import type { AddonVersionOption, ManualModDownload, ModCatalog, ModFile, ModProject, ModProvider, Server } from '../../types';
 import { ConfirmDialog, EmptyState, Modal, Segmented, Spinner } from '../../components/ui';
-import { IconCheck, IconDownload, IconMod, IconRefresh, IconSearch, IconTrash, IconX } from '../../components/Icons';
+import { IconCheck, IconDownload, IconMod, IconPlus, IconRefresh, IconSearch, IconTrash, IconX } from '../../components/Icons';
 import { formatBytes, formatRelative } from '../../format';
+import AddonVersionDialog from './AddonVersionDialog';
 import './PluginsTab.css';
 
 type Mode = 'installed' | ModProvider;
@@ -23,6 +25,7 @@ export default function ModsTab({ server }: { server: Server }) {
   const [mods, setMods] = useState<ModFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [changing, setChanging] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ModFile | null>(null);
   const [query, setQuery] = useState('');
@@ -33,6 +36,11 @@ export default function ModsTab({ server }: { server: Server }) {
   const [installProgress, setInstallProgress] = useState(0);
   const [operationId, setOperationId] = useState<string | null>(null);
   const [manual, setManual] = useState<ManualModDownload | null>(null);
+  const [versionTarget, setVersionTarget] = useState<ModProject | null>(null);
+  const [versions, setVersions] = useState<AddonVersionOption[]>([]);
+  const [selectedVersionId, setSelectedVersionId] = useState('');
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [versionError, setVersionError] = useState('');
   const polling = useRef(false);
   const searchSequence = useRef(0);
   const editable = server.status === 'stopped' || server.status === 'crashed';
@@ -109,6 +117,30 @@ export default function ModsTab({ server }: { server: Server }) {
     } finally { setChanging(null); }
   };
 
+  const addFiles = async () => {
+    const selected = await openFile({
+      multiple: true,
+      directory: false,
+      title: 'Add mod JARs',
+      filters: [{ name: 'Mod JARs', extensions: ['jar'] }],
+    });
+    const paths = typeof selected === 'string' ? [selected] : selected ?? [];
+    if (paths.length === 0) return;
+    setAdding(true);
+    try {
+      setMods(await store.addModFiles(server.id, paths));
+      store.pushToast({
+        tone: 'success',
+        title: `${paths.length} mod${paths.length === 1 ? '' : 's'} added`,
+        detail: running ? 'The files were copied. Restart the server to load them.' : 'The files were copied into this server.',
+      });
+    } catch (error) {
+      store.pushToast({ tone: 'error', title: 'Mods were not added', detail: messageFrom(error) });
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const remove = async () => {
     if (!deleteTarget) return;
     const target = deleteTarget;
@@ -122,13 +154,30 @@ export default function ModsTab({ server }: { server: Server }) {
     } finally { setChanging(null); }
   };
 
-  const install = async (project: ModProject) => {
+  const chooseVersion = async (project: ModProject) => {
+    setVersionTarget(project);
+    setVersions([]);
+    setSelectedVersionId('');
+    setVersionError('');
+    setVersionsLoading(true);
+    try {
+      const options = await store.listModVersions(server.id, project.provider, project.projectId);
+      setVersions(options);
+      setSelectedVersionId(options.find((version) => version.releaseType.toLowerCase() === 'release')?.id ?? options[0]?.id ?? '');
+    } catch (error) {
+      setVersionError(messageFrom(error));
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
+  const install = async (project: ModProject, versionId: string) => {
     const key = `${project.provider}:${project.projectId}`;
     setInstalling(key);
     setInstallProgress(0);
     setOperationId(null);
     try {
-      const result = await store.installMod(server.id, project.provider, project.projectId, (event) => {
+      const result = await store.installMod(server.id, project.provider, project.projectId, versionId, (event) => {
         setOperationId(event.data.operationId);
         if (event.event === 'progress') setInstallProgress(event.data.progress ?? 0);
       });
@@ -179,9 +228,14 @@ export default function ModsTab({ server }: { server: Server }) {
           ]}
         />
         {mode === 'installed' ? (
-          <button className="btn btn-secondary btn-sm" disabled={refreshing} onClick={() => void refresh(true)}>
-            {refreshing ? <Spinner size={12} /> : <IconRefresh size={13} />} Refresh
-          </button>
+          <div className="plugin-toolbar-actions">
+            <button className="btn btn-secondary btn-sm" disabled={!installable || adding} onClick={() => void addFiles()}>
+              {adding ? <Spinner size={12} /> : <IconPlus size={13} />} Add mods
+            </button>
+            <button className="btn btn-secondary btn-sm" disabled={refreshing || adding} onClick={() => void refresh(true)}>
+              {refreshing ? <Spinner size={12} /> : <IconRefresh size={13} />} Refresh
+            </button>
+          </div>
         ) : (
           <div className="plugin-search">
             <IconSearch size={14} />
@@ -250,7 +304,7 @@ export default function ModsTab({ server }: { server: Server }) {
                 <span className="plugin-meta">{compactNumber(project.downloads)} downloads{project.followers ? ` · ${compactNumber(project.followers)} followers` : ''} · updated {formatRelative(project.lastUpdated)}</span>
                 {busy && !manual && <div className="plugin-install-progress"><span style={{ width: `${installProgress}%` }} /></div>}
               </div>
-              <button className={`btn btn-sm ${busy ? 'btn-secondary' : installed ? 'btn-secondary plugin-installed-btn' : 'btn-primary'}`} disabled={installed || !installable || (installing !== null && !busy) || (busy && (Boolean(manual) || !operationId))} onClick={() => busy && operationId ? void store.cancelOperation(operationId) : void install(project)}>
+              <button className={`btn btn-sm ${busy ? 'btn-secondary' : installed ? 'btn-secondary plugin-installed-btn' : 'btn-primary'}`} disabled={installed || !installable || (installing !== null && !busy) || (busy && (Boolean(manual) || !operationId))} onClick={() => busy && operationId ? void store.cancelOperation(operationId) : void chooseVersion(project)}>
                 {busy && !manual ? <IconX size={12} /> : installed ? <IconCheck size={13} /> : <IconDownload size={13} />}
                 {busy ? (manual ? 'Waiting' : 'Cancel') : installed ? 'Installed' : 'Install'}
               </button>
@@ -270,6 +324,25 @@ export default function ModsTab({ server }: { server: Server }) {
         notes={deleteTarget ? [deleteTarget.fileName, 'The change takes effect the next time the server starts.'] : undefined}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={() => void remove()}
+      />
+
+      <AddonVersionDialog
+        open={versionTarget !== null}
+        projectName={versionTarget?.name ?? 'mod'}
+        kind="mod"
+        versions={versions}
+        selectedId={selectedVersionId}
+        loading={versionsLoading}
+        error={versionError}
+        onSelect={setSelectedVersionId}
+        onClose={() => setVersionTarget(null)}
+        onInstall={() => {
+          if (!versionTarget || !selectedVersionId) return;
+          const project = versionTarget;
+          const versionId = selectedVersionId;
+          setVersionTarget(null);
+          void install(project, versionId);
+        }}
       />
 
       <Modal

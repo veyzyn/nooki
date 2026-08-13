@@ -1,6 +1,6 @@
 [package]
 name = "nooki"
-version = "0.1.1"
+version = "0.1.2"
 description = "A simple local Minecraft server manager"
 authors = ["Dani"]
 license = "MIT"

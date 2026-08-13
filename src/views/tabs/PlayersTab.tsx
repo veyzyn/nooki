@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../../state/store';
 import type { Server } from '../../types';
 import { Avatar, ConfirmDialog, EmptyState, Field, Modal, Segmented } from '../../components/ui';
@@ -7,6 +7,33 @@ import { formatRelative } from '../../format';
 import './PlayersTab.css';
 
 type PlayerTab = 'online' | 'whitelist' | 'operators' | 'banned';
+
+const avatarCache = new Map<string, string | null>();
+
+function PlayerAvatar({ name, identifier = name, color, size }: { name: string; identifier?: string; color: string; size: number }) {
+  const store = useStore();
+  const cacheKey = identifier.toLowerCase();
+  const [image, setImage] = useState<string | null>(() => avatarCache.get(cacheKey) ?? null);
+
+  useEffect(() => {
+    let active = true;
+    if (avatarCache.has(cacheKey)) {
+      setImage(avatarCache.get(cacheKey) ?? null);
+      return () => { active = false; };
+    }
+    void store.loadPlayerAvatar(identifier)
+      .then((result) => {
+        avatarCache.set(cacheKey, result);
+        if (active) setImage(result);
+      })
+      .catch(() => {
+        avatarCache.set(cacheKey, null);
+      });
+    return () => { active = false; };
+  }, [cacheKey, identifier, store.loadPlayerAvatar]);
+
+  return <Avatar name={name} color={color} image={image} size={size} />;
+}
 
 export default function PlayersTab({ server }: { server: Server }) {
   const store = useStore();
@@ -83,7 +110,7 @@ export default function PlayersTab({ server }: { server: Server }) {
             <ul className="player-list">
               {online.map((p) => (
                 <li key={p.id} className="player-row">
-                  <Avatar name={p.username} color={p.avatar} size={34} />
+                  <PlayerAvatar name={p.username} color={p.avatar} size={34} />
                   <div className="player-main">
                     <span className="player-name">
                       {p.username}
@@ -151,7 +178,7 @@ export default function PlayersTab({ server }: { server: Server }) {
             <ul className="player-list">
               {roster.whitelist.map((entry) => (
                 <li key={entry.id} className="player-row">
-                  <Avatar name={entry.username} color={entry.avatar} size={30} />
+                  <PlayerAvatar name={entry.username} identifier={entry.id} color={entry.avatar} size={30} />
                   <div className="player-main">
                     <span className="player-name">{entry.username}</span>
                     <span className="player-sub">Added {formatRelative(entry.addedAt)}</span>
@@ -188,7 +215,7 @@ export default function PlayersTab({ server }: { server: Server }) {
             <ul className="player-list">
               {roster.operators.map((entry) => (
                 <li key={entry.id} className="player-row">
-                  <Avatar name={entry.username} color={entry.avatar} size={30} />
+                  <PlayerAvatar name={entry.username} identifier={entry.id} color={entry.avatar} size={30} />
                   <div className="player-main">
                     <span className="player-name">{entry.username}</span>
                     <span className="player-sub">Operator since {formatRelative(entry.addedAt)}</span>
@@ -217,7 +244,7 @@ export default function PlayersTab({ server }: { server: Server }) {
             <ul className="player-list">
               {roster.banned.map((entry) => (
                 <li key={entry.id} className="player-row">
-                  <Avatar name={entry.username} color={entry.avatar} size={30} />
+                  <PlayerAvatar name={entry.username} identifier={entry.id} color={entry.avatar} size={30} />
                   <div className="player-main">
                     <span className="player-name">{entry.username}</span>
                     <span className="player-sub">

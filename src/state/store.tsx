@@ -7,7 +7,7 @@ import type {
   CreateDatabaseInput, DatabaseEnvironment, ManagedDatabase,
   WorldEntry, WorldSettingsInput,
   EphemeralWorldScan, HostInfo, ImportScan, ImportServerInput, JavaRuntime, LogLine, LogSession, NavView, OperationEvent,
-  ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, Player, PluginCatalog, PluginFile, RelayAccess, Server, ServerRoster, ServerSettingsInput, ServerTab, ServerType, Toast, VersionCatalog,
+  AddonVersionOption, ModCatalog, ModFile, ModInstallResult, ModpackCatalog, ModpackVersionOption, ModProvider, Player, PluginCatalog, PluginFile, RelayAccess, Server, ServerRoster, ServerSettingsInput, ServerTab, ServerType, Toast, VersionCatalog,
 } from '../types';
 import { uid } from '../format';
 
@@ -42,6 +42,7 @@ interface StoreValue {
   listVersions: (type: ServerType, includeExperimental: boolean) => Promise<VersionCatalog>;
   scanServerFolder: (path: string) => Promise<ImportScan>;
   loadServerIcon: (path: string) => Promise<string>;
+  loadPlayerAvatar: (identifier: string) => Promise<string | null>;
   scanEphemeralWorld: (path: string) => Promise<EphemeralWorldScan>;
   createEphemeralServer: (input: CreateEphemeralServerInput, onProgress: (event: OperationEvent) => void) => Promise<Server>;
   removeServer: (id: string, mode: 'forget' | 'recycle', confirmation?: string) => Promise<void>;
@@ -60,15 +61,19 @@ interface StoreValue {
   listPlugins: (serverId: string) => Promise<PluginFile[]>;
   setPluginEnabled: (serverId: string, fileName: string, enabled: boolean) => Promise<PluginFile[]>;
   deletePlugin: (serverId: string, fileName: string) => Promise<PluginFile[]>;
+  addPluginFiles: (serverId: string, paths: string[]) => Promise<PluginFile[]>;
   searchPlugins: (query: string, offset?: number) => Promise<PluginCatalog>;
   loadPluginIcon: (projectId: number) => Promise<string | null>;
-  installPlugin: (serverId: string, namespace: string, slug: string, onProgress: (event: OperationEvent) => void) => Promise<PluginFile[]>;
+  listPluginVersions: (serverId: string, namespace: string, slug: string) => Promise<AddonVersionOption[]>;
+  installPlugin: (serverId: string, namespace: string, slug: string, versionId: string, onProgress: (event: OperationEvent) => void) => Promise<PluginFile[]>;
   listMods: (serverId: string) => Promise<ModFile[]>;
   setModEnabled: (serverId: string, fileName: string, enabled: boolean) => Promise<ModFile[]>;
   deleteMod: (serverId: string, fileName: string) => Promise<ModFile[]>;
+  addModFiles: (serverId: string, paths: string[]) => Promise<ModFile[]>;
   searchMods: (provider: ModProvider, loader: 'fabric' | 'forge' | 'neoforge', gameVersion: string, query: string, offset?: number) => Promise<ModCatalog>;
   loadModIcon: (provider: ModProvider, iconUrl: string) => Promise<string | null>;
-  installMod: (serverId: string, provider: ModProvider, projectId: string, onProgress: (event: OperationEvent) => void) => Promise<ModInstallResult>;
+  listModVersions: (serverId: string, provider: ModProvider, projectId: string) => Promise<AddonVersionOption[]>;
+  installMod: (serverId: string, provider: ModProvider, projectId: string, versionId: string, onProgress: (event: OperationEvent) => void) => Promise<ModInstallResult>;
   checkManualModDownload: (token: string) => Promise<ModInstallResult>;
   cancelManualModDownload: (token: string) => Promise<void>;
   openManualModDownload: (token: string) => Promise<void>;
@@ -368,6 +373,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     startServer: (id) => action(id, 'start'), stopServer: (id) => action(id, 'stop'), restartServer: (id) => action(id, 'restart'), forceStopServer: (id) => action(id, 'forceStop'),
     createServer, searchModpacks: api.searchModpacks, listModpackVersions: api.listModpackVersions,
     createModpackServer: api.createModpackServer, importServer, listVersions: api.listVersions, scanServerFolder: api.scanServerFolder, loadServerIcon: api.loadServerIcon,
+    loadPlayerAvatar: api.loadPlayerAvatar,
     scanEphemeralWorld: api.scanEphemeralWorld, createEphemeralServer,
     removeServer, revealPath, patchServer, dismissAlert, sendCommand, clearConsole,
     kickPlayer: (serverId, playerId) => { const name = playerName(serverId, playerId); if (name) playerAction(serverId, 'kick', name); },
@@ -379,10 +385,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     revokeOperator: (serverId, entryId) => { const name = rosterName(serverId, 'operators', entryId); if (name) playerAction(serverId, 'deop', name); },
     backupFlow, startBackup, clearBackupFlow: () => setBackupFlow(null), restoreFlow, startRestore, clearRestoreFlow: () => setRestoreFlow(null),
     deleteBackup, setSchedule, updateFlow, beginUpdate, runUpdate, clearUpdateFlow: () => setUpdateFlow(null), changeSoftware: api.changeSoftware,
-    listPlugins: api.listPlugins, setPluginEnabled: api.setPluginEnabled, deletePlugin: api.deletePlugin,
-    searchPlugins: api.searchPlugins, loadPluginIcon: api.loadPluginIcon, installPlugin: api.installPlugin,
-    listMods: api.listMods, setModEnabled: api.setModEnabled, deleteMod: api.deleteMod,
-    searchMods: api.searchMods, loadModIcon: api.loadModIcon, installMod: api.installMod,
+    listPlugins: api.listPlugins, setPluginEnabled: api.setPluginEnabled, deletePlugin: api.deletePlugin, addPluginFiles: api.addPluginFiles,
+    searchPlugins: api.searchPlugins, loadPluginIcon: api.loadPluginIcon, listPluginVersions: api.listPluginVersions, installPlugin: api.installPlugin,
+    listMods: api.listMods, setModEnabled: api.setModEnabled, deleteMod: api.deleteMod, addModFiles: api.addModFiles,
+    searchMods: api.searchMods, loadModIcon: api.loadModIcon, listModVersions: api.listModVersions, installMod: api.installMod,
     checkManualModDownload: api.checkManualModDownload, cancelManualModDownload: api.cancelManualModDownload,
     openManualModDownload: api.openManualModDownload,
     cancelOperation: api.cancelOperation,

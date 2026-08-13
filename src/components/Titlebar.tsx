@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { Maximize2, Minimize2, Minus, X } from 'lucide-react';
 import { NookiLogo } from './Icons';
 import './Titlebar.css';
 
@@ -44,7 +45,7 @@ export default function Titlebar() {
           title="Minimize"
           onClick={() => { void appWindow.minimize(); }}
         >
-          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 8.5h8" /></svg>
+          <Minus aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -54,9 +55,9 @@ export default function Titlebar() {
           onClick={toggleMaximize}
         >
           {maximized ? (
-            <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 4.5V2.5h6v6h-2M2.5 4.5h5v5h-5z" /></svg>
+            <Minimize2 aria-hidden="true" />
           ) : (
-            <svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2.5" y="2.5" width="7" height="7" /></svg>
+            <Maximize2 aria-hidden="true" />
           )}
         </button>
         <button
@@ -66,7 +67,7 @@ export default function Titlebar() {
           title="Close"
           onClick={() => { void appWindow.close(); }}
         >
-          <svg viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 2.5 7 7m0-7-7 7" /></svg>
+          <X aria-hidden="true" />
         </button>
       </div>
     </header>

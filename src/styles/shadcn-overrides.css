@@ -2,21 +2,25 @@
    the feature layouts and stateful behavior that already work in Nooki. */
 
 .view-header,
+.detail-head,
+.tab:not(.console-tab),
+.done-panel {
+  animation: surfaceIn 140ms var(--ease-out) both !important;
+}
+
 .dash-section,
 .stat-card,
 .server-row,
 .activity-item,
-.detail-head,
-.detail-identity,
-.detail-tabs,
-.tab,
 .settings-group,
 .choice,
 .soft-card,
 .review,
 .summary-row,
-.done-panel {
-  animation: none !important;
+.plugin-row:not(.plugin-skeleton),
+.database-card:not(.database-skeleton),
+.world-card:not(.world-skeleton) {
+  animation: softFadeIn 120ms var(--ease-smooth) both !important;
 }
 
 .choice,
@@ -24,12 +28,10 @@
 .review,
 .eula,
 .done-panel,
+.done-summary,
 .scan,
 .settings-card,
 .relay-access-card,
-.quick-world,
-.quick-world-drop,
-.sharing-intro,
 .plugins-surface,
 .players-panel,
 .logs-panel,
@@ -59,6 +61,26 @@
   background: color-mix(in oklab, var(--card) 92%, var(--foreground) 2%) !important;
   box-shadow: none !important;
   transform: none !important;
+}
+
+.choice:hover,
+.soft-card:hover,
+.settings-card:hover,
+.database-card:hover,
+.modpack-project:hover,
+.modpack-version:hover,
+.world-card:hover {
+  transform: translateY(-1px) !important;
+}
+
+.choice:active,
+.soft-card:active,
+.server-row:active,
+.database-card:active,
+.modpack-project:active,
+.modpack-version:active,
+.world-card:active {
+  transform: translateY(0) scale(.995) !important;
 }
 
 .choice-icon,
@@ -146,7 +168,6 @@
   background: var(--card) !important;
   box-shadow: none !important;
 }
-.save-bar::before { background: var(--st-warning) !important; box-shadow: none !important; }
 
 .console-output,
 .quick-console {
@@ -169,7 +190,6 @@
 .settings-group-head,
 .logs-head-row,
 .backups-head-row,
-.players-head,
 .world-list {
   background: color-mix(in oklab, var(--muted) 22%, transparent) !important;
 }
@@ -195,7 +215,6 @@
 }
 
 .quick-world-drop-icon,
-.sharing-intro-icon,
 .quick-session-mark,
 .plugin-mark,
 .database-engine,
@@ -220,6 +239,68 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  .btn,
+  .icon-btn,
+  .nav-item,
+  .detail-tab,
+  .segmented-btn,
+  .back-btn,
+  .address-chip,
+  .choice,
+  .soft-card,
+  .server-row,
+  .settings-card,
+  .plugin-row,
+  .database-card,
+  .database-engine-choice,
+  .world-card,
+  .version-result,
+  .version-product-rail button,
+  .modpack-provider-rail button,
+  .modpack-project,
+  .modpack-version,
+  .preset {
+    transition: background-color 120ms var(--ease-smooth),
+      border-color 120ms var(--ease-smooth),
+      color 120ms var(--ease-smooth),
+      opacity 120ms var(--ease-smooth),
+      transform 120ms var(--ease-out) !important;
+  }
+
+  .btn:active:not(:disabled),
+  .icon-btn:active:not(:disabled),
+  .nav-item:active,
+  .detail-tab:active,
+  .segmented-btn:active,
+  .back-btn:active {
+    transform: translateY(1px) scale(.99);
+  }
+
+  .input,
+  .textarea,
+  .custom-select-trigger,
+  .plugin-search,
+  .console-search,
+  .version-picker-search,
+  .modpack-search {
+    transition: background-color 120ms var(--ease-smooth),
+      border-color 120ms var(--ease-smooth),
+      box-shadow 120ms var(--ease-smooth),
+      color 120ms var(--ease-smooth) !important;
+  }
+
+  .nav-badge,
+  .tab-count,
+  .status-badge,
+  .plugin-source-tag,
+  .plugin-disabled-tag,
+  .toast-title::before {
+    transition: background-color 120ms var(--ease-smooth),
+      color 120ms var(--ease-smooth),
+      border-color 120ms var(--ease-smooth),
+      opacity 120ms var(--ease-smooth) !important;
+  }
+
   .skeleton-block,
   .skeleton-copy i,
   .plugin-logo-skeleton,
@@ -237,4 +318,24 @@
   .dashboard-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .view-header, .dash-body { padding-left: 20px; padding-right: 20px; }
   .server-row-history { display: none; }
+}
+
+/* Desktop controls keep the native arrow cursor instead of a web-style hand. */
+button,
+a,
+label,
+summary,
+select,
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+[role="button"],
+[role="tab"],
+[role="option"] {
+  cursor: default !important;
+}
+
+button:disabled,
+.btn:disabled {
+  cursor: default !important;
 }

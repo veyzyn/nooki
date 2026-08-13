@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { StoreProvider, useStore } from './state/store';
 import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
@@ -17,6 +18,17 @@ import './styles/shadcn-overrides.css';
 function AppContent() {
   const store = useStore();
   const selectedServer = store.servers.find((s) => s.id === store.openServerId);
+
+  useEffect(() => {
+    if (!store.ready && !store.initError) return;
+    const startup = document.getElementById('nooki-startup');
+    if (!startup) return;
+    startup.classList.add('is-ready');
+    const remove = () => startup.remove();
+    startup.addEventListener('transitionend', remove, { once: true });
+    const fallback = window.setTimeout(remove, 250);
+    return () => window.clearTimeout(fallback);
+  }, [store.ready, store.initError]);
 
   if (!store.ready) {
     return <div className="app-shell">

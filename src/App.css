@@ -3,14 +3,14 @@
 .main-content { display: flex; min-width: 0; flex: 1; flex-direction: column; overflow: hidden; background: var(--background); }
 
 .toast-container { position: fixed; right: 20px; bottom: 20px; z-index: 1000; display: flex; width: min(360px, calc(100vw - 40px)); flex-direction: column; gap: 8px; pointer-events: none; }
-.toast { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--popover) 94%, transparent); box-shadow: var(--sh-md); color: var(--popover-foreground); pointer-events: auto; backdrop-filter: blur(16px); animation: fadeInUp 160ms var(--ease-out); }
-.toast::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 2px; background: var(--muted-foreground); }
-.toast-success::before { background: var(--st-running); }
-.toast-error::before { background: var(--destructive); }
-.toast-warning::before { background: var(--st-warning); }
-.toast-progress::before { background: var(--st-updating); }
-.toast-content { min-width: 0; flex: 1; padding-left: 3px; }
-.toast-title { color: var(--foreground); font-size: 12px; font-weight: 650; }
+.toast { --toast-tone: var(--st-info); position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px; overflow: hidden; border: 1px solid color-mix(in oklab, var(--toast-tone) 24%, var(--border)); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--toast-tone) 4%, var(--popover)); box-shadow: var(--sh-md); color: var(--popover-foreground); pointer-events: auto; backdrop-filter: blur(16px); animation: fadeInUp 160ms var(--ease-out); }
+.toast-success { --toast-tone: var(--st-running); }
+.toast-error { --toast-tone: var(--destructive); }
+.toast-warning { --toast-tone: var(--st-warning); }
+.toast-progress { --toast-tone: var(--st-updating); }
+.toast-content { min-width: 0; flex: 1; }
+.toast-title { display: flex; align-items: center; gap: 8px; color: var(--foreground); font-size: 12px; font-weight: 650; }
+.toast-title::before { content: ""; width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--toast-tone); box-shadow: 0 0 0 3px color-mix(in oklab, var(--toast-tone) 12%, transparent); }
 .toast-detail { margin-top: 3px; color: var(--muted-foreground); font-size: 11px; line-height: 1.45; }
 .toast-progress { height: 3px; margin-top: 10px; overflow: hidden; border-radius: 999px; background: var(--muted); }
 .toast-progress-fill { height: 100%; border-radius: inherit; background: var(--primary); transition: width 220ms var(--ease-out); }

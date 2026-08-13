@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useStore } from '../state/store';
 import type { Server, ServerTab } from '../types';
@@ -8,6 +8,7 @@ import {
   IconCopy,
   IconDatabase,
   IconFileText,
+  IconFolderOpen,
   IconGrid,
   IconGlobe,
   IconMod,
@@ -31,11 +32,14 @@ import DatabasesTab from './tabs/DatabasesTab';
 import WorldsTab from './tabs/WorldsTab';
 import './ServerDetail.css';
 
+const FilesTab = lazy(() => import('./tabs/FilesTab'));
+
 const baseTabs: { id: ServerTab; label: string; icon: ReactNode }[] = [
   { id: 'overview', label: 'Overview', icon: <IconGrid size={14} /> },
   { id: 'console', label: 'Console', icon: <IconTerminal size={14} /> },
   { id: 'players', label: 'Players', icon: <IconUsers size={14} /> },
   { id: 'worlds', label: 'Worlds', icon: <IconGlobe size={14} /> },
+  { id: 'files', label: 'Files', icon: <IconFolderOpen size={14} /> },
   { id: 'databases', label: 'Databases', icon: <IconDatabase size={14} /> },
   { id: 'settings', label: 'Settings', icon: <IconSettings size={14} /> },
   { id: 'logs', label: 'Logs', icon: <IconFileText size={14} /> },
@@ -176,6 +180,11 @@ export default function ServerDetail({ server }: { server: Server }) {
         {(server.type === 'fabric' || server.type === 'forge' || server.type === 'neoforge') && serverTab === 'mods' && <ModsTab server={server} />}
         {serverTab === 'databases' && <DatabasesTab server={server} />}
         {serverTab === 'worlds' && <WorldsTab server={server} />}
+        {serverTab === 'files' && (
+          <Suspense fallback={<div className="files-tab-loader"><div className="files-tab-loader-head"><span /><span /></div><div className="files-tab-loader-panel"><div className="files-tab-loader-toolbar" />{Array.from({ length: 7 }, (_, index) => <div key={index} className="files-tab-loader-row" />)}</div></div>}>
+            <FilesTab server={server} />
+          </Suspense>
+        )}
         {serverTab === 'settings' && <ServerSettingsTab server={server} />}
         {serverTab === 'logs' && <LogsTab server={server} />}
         {serverTab === 'backups' && <ServerBackupsTab server={server} />}

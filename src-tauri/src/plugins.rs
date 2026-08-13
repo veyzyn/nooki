@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{Read, Write},
     path::{Component, Path, PathBuf},
@@ -64,6 +64,16 @@ pub struct PluginCatalog {
     pub has_more: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginVersionOption {
+    pub id: String,
+    pub version: String,
+    pub release_type: String,
+    pub published_at: i64,
+    pub automatic: bool,
+}
+
 #[derive(Debug, Deserialize)]
 struct Page<T> {
     pagination: Pagination,
@@ -100,20 +110,29 @@ struct HangarStats {
     stars: u64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct HangarVersion {
+    id: u64,
     name: String,
+    created_at: String,
+    channel: HangarChannel,
     downloads: std::collections::HashMap<String, HangarDownload>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
+struct HangarChannel {
+    name: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct HangarDownload {
-    file_info: HangarFileInfo,
+    file_info: Option<HangarFileInfo>,
     download_url: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct HangarFileInfo {
     sha256_hash: String,
@@ -206,6 +225,50 @@ pub async fn delete_plugin(
 }
 
 #[tauri::command]
+pub async fn add_plugin_files(
+    state: SharedState<'_>,
+    server_id: String,
+    paths: Vec<String>,
+) -> CommandResult<Vec<PluginFile>> {
+    if paths.is_empty() {
+        return Err(Error::Validation("Choose at least one plugin JAR.".into()).into());
+    }
+    let lock = state.operation_lock(&server_id);
+    let _guard = lock.lock().await;
+    let server = installable_paper_server(state.inner(), &server_id).await?;
+    let directory = plugin_directory(&server);
+    tokio::fs::create_dir_all(&directory)
+        .await
+        .map_err(Error::from)?;
+    let copied = tokio::task::spawn_blocking(move || {
+        copy_plugin_files(paths.into_iter().map(PathBuf::from).collect(), &directory)
+    })
+    .await
+    .map_err(|error| Error::Internal(error.to_string()))??;
+    if state.processes.is_running(&server_id).await {
+        add_restart_alert(
+            state.inner(),
+            &server_id,
+            "Restart the server to load the newly added plugins.",
+        )
+        .await?;
+    }
+    state
+        .activity(
+            "settings",
+            Some(&server),
+            format!(
+                "Added {copied} plugin{} from local files",
+                if copied == 1 { "" } else { "s" }
+            ),
+        )
+        .await?;
+    list_for_server(state.inner(), &server_id)
+        .await
+        .map_err(AppError::from)
+}
+
+#[tauri::command]
 pub async fn search_plugins(query: String, offset: u32) -> CommandResult<PluginCatalog> {
     search_hangar(query, offset).await.map_err(AppError::from)
 }
@@ -216,11 +279,45 @@ pub async fn load_plugin_icon(project_id: u64) -> CommandResult<Option<String>> 
 }
 
 #[tauri::command]
+pub async fn list_plugin_versions(
+    state: SharedState<'_>,
+    server_id: String,
+    namespace: String,
+    slug: String,
+) -> CommandResult<Vec<PluginVersionOption>> {
+    validate_project_part(&namespace)?;
+    validate_project_part(&slug)?;
+    let server = paper_server(state.inner(), &server_id).await?;
+    let versions = compatible_hangar_versions(&namespace, &slug, &server.version).await?;
+    let options = versions
+        .into_iter()
+        .filter(|version| installable_hangar_download(version).is_some())
+        .map(|version| PluginVersionOption {
+            id: version.id.to_string(),
+            version: version.name,
+            release_type: version.channel.name,
+            published_at: chrono::DateTime::parse_from_rfc3339(&version.created_at)
+                .map_or(0, |date| date.timestamp_millis()),
+            automatic: true,
+        })
+        .collect::<Vec<_>>();
+    if options.is_empty() {
+        return Err(Error::NotFound(format!(
+            "{slug} has no directly downloadable release compatible with Paper {}.",
+            server.version
+        ))
+        .into());
+    }
+    Ok(options)
+}
+
+#[tauri::command]
 pub async fn install_plugin(
     state: SharedState<'_>,
     server_id: String,
     namespace: String,
     slug: String,
+    version_id: String,
     on_progress: Channel<OperationEvent>,
 ) -> CommandResult<Vec<PluginFile>> {
     install_from_hangar(
@@ -228,6 +325,7 @@ pub async fn install_plugin(
         server_id,
         namespace,
         slug,
+        version_id,
         &on_progress,
     )
     .await
@@ -385,6 +483,80 @@ fn read_plugin_descriptor(path: &Path) -> Result<PluginDescriptor> {
             .or_else(|| yaml_scalar(&text, "author").map(|author| vec![author]))
             .unwrap_or_default(),
     })
+}
+
+fn copy_plugin_files(sources: Vec<PathBuf>, directory: &Path) -> Result<usize> {
+    if sources.len() > 128 {
+        return Err(Error::Validation(
+            "Choose no more than 128 plugin files at once.".into(),
+        ));
+    }
+    let mut names = HashSet::new();
+    let mut copies = Vec::with_capacity(sources.len());
+    for source in sources {
+        if !source.is_file() {
+            return Err(Error::NotFound(format!(
+                "Plugin file not found: {}",
+                source.display()
+            )));
+        }
+        let name = source
+            .file_name()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| {
+                Error::Validation("A selected plugin has an invalid file name.".into())
+            })?;
+        if !name.to_ascii_lowercase().ends_with(".jar") {
+            return Err(Error::Validation(format!("{name} is not a plugin JAR.")));
+        }
+        if !names.insert(name.to_ascii_lowercase()) {
+            return Err(Error::Conflict(format!(
+                "The selection contains more than one file named {name}."
+            )));
+        }
+        let size = std::fs::metadata(&source)?.len();
+        if size > MAX_PLUGIN_BYTES {
+            return Err(Error::Validation(format!("{name} is larger than 128 MiB.")));
+        }
+        read_plugin_descriptor(&source)
+            .map_err(|_| Error::Validation(format!("{name} is not a valid Paper plugin JAR.")))?;
+        let target = safe_plugin_path(directory, name)?;
+        let disabled = safe_plugin_path(directory, &format!("{name}.disabled"))?;
+        if target.exists() || disabled.exists() {
+            return Err(Error::Conflict(format!("{name} is already installed.")));
+        }
+        copies.push((source, target));
+    }
+    let mut created = Vec::with_capacity(copies.len());
+    for (source, target) in copies {
+        if let Err(error) = std::fs::copy(&source, &target) {
+            for path in &created {
+                let _ = std::fs::remove_file(path);
+            }
+            return Err(error.into());
+        }
+        created.push(target);
+    }
+    Ok(created.len())
+}
+
+async fn add_restart_alert(state: &Arc<AppState>, server_id: &str, detail: &str) -> Result<()> {
+    let mut server = state.server(server_id).await?;
+    if !server
+        .alerts
+        .iter()
+        .any(|alert| alert.kind == "restart-required")
+    {
+        server.alerts.push(ServerAlert {
+            id: uuid::Uuid::new_v4().to_string(),
+            kind: "restart-required".into(),
+            title: "Restart required".into(),
+            detail: detail.into(),
+            severity: "info".into(),
+        });
+        state.save_server(server).await?;
+    }
+    Ok(())
 }
 
 fn yaml_scalar(text: &str, key: &str) -> Option<String> {
@@ -559,6 +731,7 @@ async fn install_from_hangar(
     server_id: String,
     namespace: String,
     slug: String,
+    version_id: String,
     progress: &Channel<OperationEvent>,
 ) -> Result<Vec<PluginFile>> {
     validate_project_part(&namespace)?;
@@ -584,26 +757,19 @@ async fn install_from_hangar(
         .json()
         .await?;
 
-    let versions: Page<HangarVersion> = http_client()?
-        .get(format!("{HANGAR_API}/projects/{namespace}/{slug}/versions"))
-        .query(&[
-            ("limit", "1"),
-            ("offset", "0"),
-            ("platform", "PAPER"),
-            ("platformVersion", server.version.as_str()),
-            ("channel", "Release"),
-        ])
-        .send()
-        .await?
-        .error_for_status()?
-        .json()
-        .await?;
-    let version = versions.result.into_iter().next().ok_or_else(|| {
-        Error::NotFound(format!(
-            "{slug} has no release compatible with Paper {}.",
-            server.version
-        ))
-    })?;
+    let requested_version = version_id
+        .parse::<u64>()
+        .map_err(|_| Error::Validation("Invalid Hangar version identifier.".into()))?;
+    let versions = compatible_hangar_versions(&namespace, &slug, &server.version).await?;
+    let version = versions
+        .into_iter()
+        .find(|version| version.id == requested_version)
+        .ok_or_else(|| {
+            Error::NotFound(format!(
+                "That {slug} release is not compatible with Paper {}.",
+                server.version
+            ))
+        })?;
     let download = version
         .downloads
         .get("PAPER")
@@ -612,6 +778,9 @@ async fn install_from_hangar(
         Error::Unsupported(
             "That release uses an external download and cannot be installed automatically.".into(),
         )
+    })?;
+    let file_info = download.file_info.as_ref().ok_or_else(|| {
+        Error::Unsupported("That release does not provide a verifiable plugin file.".into())
     })?;
     let parsed = reqwest::Url::parse(url)
         .map_err(|_| Error::Validation("Hangar returned an invalid download URL.".into()))?;
@@ -638,7 +807,7 @@ async fn install_from_hangar(
     let temporary = plugins.join(format!(".nooki-plugin-{}.tmp", uuid::Uuid::new_v4()));
     let result = download_plugin(
         url,
-        &download.file_info.sha256_hash,
+        &file_info.sha256_hash,
         &temporary,
         progress,
         &operation_id,
@@ -707,6 +876,45 @@ async fn install_from_hangar(
         )
         .await?;
     list_for_server(&state, &server_id).await
+}
+
+async fn compatible_hangar_versions(
+    namespace: &str,
+    slug: &str,
+    paper_version: &str,
+) -> Result<Vec<HangarVersion>> {
+    let limit = 25u32;
+    let mut offset = 0u32;
+    let mut versions = Vec::new();
+    loop {
+        let page: Page<HangarVersion> = http_client()?
+            .get(format!("{HANGAR_API}/projects/{namespace}/{slug}/versions"))
+            .query(&[
+                ("limit", limit.to_string()),
+                ("offset", offset.to_string()),
+                ("platform", "PAPER".into()),
+                ("platformVersion", paper_version.to_owned()),
+            ])
+            .send()
+            .await?
+            .error_for_status()?
+            .json()
+            .await?;
+        let received = page.result.len() as u32;
+        versions.extend(page.result);
+        offset = offset.saturating_add(received);
+        if received == 0 || u64::from(offset) >= page.pagination.count {
+            break;
+        }
+    }
+    Ok(versions)
+}
+
+fn installable_hangar_download(version: &HangarVersion) -> Option<&HangarDownload> {
+    version
+        .downloads
+        .get("PAPER")
+        .filter(|download| download.download_url.is_some() && download.file_info.is_some())
 }
 
 fn validate_project_part(value: &str) -> Result<()> {
@@ -839,5 +1047,32 @@ mod tests {
         assert!(safe_plugin_path(root, "../server.jar").is_err());
         assert!(safe_plugin_path(root, "nested/plugin.jar").is_err());
         assert!(safe_plugin_path(root, "notes.txt").is_err());
+    }
+
+    #[test]
+    fn manual_plugin_import_copies_every_file_and_keeps_sources() {
+        let root = tempfile::tempdir().unwrap();
+        let source = root.path().join("source");
+        let plugins = root.path().join("plugins");
+        std::fs::create_dir_all(&source).unwrap();
+        std::fs::create_dir_all(&plugins).unwrap();
+        let first = source.join("First.jar");
+        let second = source.join("Second.jar");
+        for path in [&first, &second] {
+            let file = File::create(path).unwrap();
+            let mut jar = zip::ZipWriter::new(file);
+            jar.start_file("plugin.yml", zip::write::SimpleFileOptions::default())
+                .unwrap();
+            jar.write_all(b"name: Test\nversion: 1.0\n").unwrap();
+            jar.finish().unwrap();
+        }
+        assert_eq!(
+            copy_plugin_files(vec![first.clone(), second.clone()], &plugins).unwrap(),
+            2
+        );
+        assert!(first.exists());
+        assert!(second.exists());
+        assert!(plugins.join("First.jar").is_file());
+        assert!(plugins.join("Second.jar").is_file());
     }
 }

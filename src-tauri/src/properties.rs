@@ -104,7 +104,17 @@ impl std::fmt::Display for PropertiesFile {
 }
 
 fn escape_value(value: &str) -> String {
-    value.replace('\r', "").replace('\n', "\\n")
+    value
+        .replace('\r', "")
+        .replace('§', "\\u00A7")
+        .replace('\n', "\\n")
+}
+
+pub fn unescape_motd(value: &str) -> String {
+    value
+        .replace("\\u00a7", "§")
+        .replace("\\u00A7", "§")
+        .replace("\\n", "\n")
 }
 
 #[cfg(test)]
@@ -123,5 +133,20 @@ mod tests {
         assert!(output.contains("unknown=yes"));
         assert!(output.contains("server-port=25570"));
         assert!(output.contains("motd=Nooki server"));
+    }
+
+    #[test]
+    fn preserves_formatted_two_line_motds() {
+        let mut file = PropertiesFile::parse("motd=Old\n");
+        file.update(&HashMap::from([(
+            "motd",
+            "§aNooki\n§lSecond line".to_string(),
+        )]));
+        let output = file.to_string();
+        assert!(output.contains("motd=\\u00A7aNooki\\n\\u00A7lSecond line"));
+        assert_eq!(
+            unescape_motd("\\u00A7aNooki\\n\\u00A7lSecond line"),
+            "§aNooki\n§lSecond line"
+        );
     }
 }
