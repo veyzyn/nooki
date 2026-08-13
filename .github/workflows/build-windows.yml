@@ -257,7 +257,7 @@ jobs:
           asset="artifacts/Nooki-Windows-x64.exe"
 
           awk -v heading="## [$version]" '
-            $0 == heading { found = 1; next }
+            index($0, heading) == 1 { found = 1; next }
             found && /^## \[/ { exit }
             found { print }
           ' CHANGELOG.md > release-notes.md
