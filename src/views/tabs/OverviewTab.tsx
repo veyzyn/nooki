@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from 'recharts';
 import { useStore } from '../../state/store';
 import type { Server } from '../../types';
-import { Callout, Meter, Avatar, EmptyState } from '../../components/ui';
+import { Callout, Avatar, EmptyState } from '../../components/ui';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '../../components/ui/chart';
 import { IconUsers } from '../../components/Icons';
+import Timeline from '../../components/Timeline';
 import { formatMegabytes, formatRelative, formatUptime, softwareLabel, statusLabels } from '../../format';
 import './OverviewTab.css';
 
@@ -75,112 +76,87 @@ export default function OverviewTab({ server }: { server: Server }) {
         </div>
       )}
 
-      <div className="ov-grid">
-        <div className="ov-facts">
-          <Fact label="Status" value={statusLabels[server.status]} />
-          <Fact label="Uptime" value={running ? formatUptime(server.startedAt) : '—'} />
-          <Fact label="Software" value={`${softwareLabel(server.type)} ${server.version}`} />
-          <Fact label="Build" value={server.build} />
-          <Fact
-            label="Public address"
-            value={server.sharing.address ?? 'None'}
-            mono
-            wide
-          />
-          <Fact label="Local address" value={`localhost:${server.port}`} mono />
-          <Fact label="Players" value={`${server.players} of ${server.maxPlayers}`} />
-        </div>
+      <section className="ov-stats" aria-label="Live usage">
+        <UsageStat label="Processor" value={running ? `${Math.round(server.cpu)}%` : '—'} pct={running ? server.cpu : 0} tone={cpuTone} />
+        <UsageStat
+          label="Memory"
+          value={running ? formatMegabytes(server.memory) : '—'}
+          suffix={`/ ${formatMegabytes(server.maxMemory)}`}
+          pct={running ? memPct : 0}
+          tone={memTone}
+        />
+        <UsageStat label="Players" value={String(server.players)} suffix={`/ ${server.maxPlayers}`} pct={(server.players / Math.max(1, server.maxPlayers)) * 100} tone="accent" />
+        <UsageStat label="Uptime" value={running ? formatUptime(server.startedAt) : '—'} />
+      </section>
 
-        <div className="ov-resources">
-          <Meter
-            label="Processor"
-            value={server.cpu}
-            max={100}
-            display={running ? `${server.cpu}%` : 'idle'}
-            tone={cpuTone}
-          />
-          <Meter
-            label="Memory"
-            value={server.memory}
-            max={server.maxMemory}
-            display={running ? `${formatMegabytes(server.memory)} of ${formatMegabytes(server.maxMemory)}` : 'idle'}
-            tone={memTone}
-          />
-          <Meter
-            label="Disk"
-            value={server.diskUsed}
-            max={20 * 1024}
-            display={formatMegabytes(server.diskUsed)}
-            tone="info"
-          />
-        </div>
-      </div>
-
-      <div className="tab-section ov-load-section">
-        <h3 className="tab-section-title">Recent load</h3>
-        <div className="ov-chart">
-          <div className="ov-chart-head">
-            <span>Processor and memory</span>
-            <div className="ov-chart-values" aria-label="Current resource usage">
-              <span><i className="is-cpu" />CPU <strong>{running ? `${Math.round(server.cpu)}%` : '—'}</strong></span>
-              <span><i className="is-memory" />RAM <strong>{running ? `${Math.round(memPct)}%` : '—'}</strong></span>
-            </div>
+      <section className="ov-chart" aria-label="Recent load">
+        <div className="ov-chart-head">
+          <div>
+            <h3 className="tab-section-title">Recent load</h3>
+            <p className="section-desc">Processor and memory over the last hour</p>
           </div>
-          <ChartContainer config={loadChartConfig} className="ov-load-chart">
-            <LineChart accessibilityLayer data={loadHistory} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <XAxis
-                dataKey="at"
-                type="number"
-                scale="time"
-                domain={chartDomain}
-                tickLine={false}
-                axisLine={false}
-                tickMargin={9}
-                minTickGap={42}
-                tickFormatter={formatChartTick}
-              />
-              <YAxis
-                domain={[0, 100]}
-                ticks={[0, 25, 50, 75, 100]}
-                tickLine={false}
-                axisLine={false}
-                width={34}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <ChartTooltip
-                cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '3 3' }}
-                content={
-                  <ChartTooltipContent
-                    labelFormatter={(_, payload) => formatChartTooltipTime(Number(payload?.[0]?.payload?.at ?? now))}
-                    formatter={(value, name, item) => (
-                      <div className="ov-chart-tooltip-row">
-                        <i style={{ background: item.color }} />
-                        <span>{loadChartConfig[name === 'cpu' ? 'cpu' : 'memory'].label}</span>
-                        <strong>{Math.round(Number(value))}%</strong>
-                      </div>
-                    )}
-                  />
-                }
-              />
-              <Line dataKey="cpu" type="monotone" stroke="var(--color-cpu)" strokeWidth={2} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
-              <Line dataKey="memory" type="monotone" stroke="var(--color-memory)" strokeWidth={2} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
-            </LineChart>
-          </ChartContainer>
+          <div className="ov-chart-values" aria-label="Current resource usage">
+            <span><i className="is-cpu" />CPU <strong>{running ? `${Math.round(server.cpu)}%` : '—'}</strong></span>
+            <span><i className="is-memory" />RAM <strong>{running ? `${Math.round(memPct)}%` : '—'}</strong></span>
+          </div>
         </div>
-      </div>
+        <ChartContainer config={loadChartConfig} className="ov-load-chart">
+          <LineChart accessibilityLayer data={loadHistory} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="at"
+              type="number"
+              scale="time"
+              domain={chartDomain}
+              tickLine={false}
+              axisLine={false}
+              tickMargin={9}
+              minTickGap={42}
+              tickFormatter={formatChartTick}
+            />
+            <YAxis
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tickLine={false}
+              axisLine={false}
+              width={34}
+              tickFormatter={(value) => `${value}%`}
+            />
+            <ChartTooltip
+              cursor={{ stroke: 'var(--border-strong)', strokeDasharray: '3 3' }}
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(_, payload) => formatChartTooltipTime(Number(payload?.[0]?.payload?.at ?? now))}
+                  formatter={(value, name, item) => (
+                    <div className="ov-chart-tooltip-row">
+                      <i style={{ background: item.color }} />
+                      <span>{loadChartConfig[name === 'cpu' ? 'cpu' : 'memory'].label}</span>
+                      <strong>{Math.round(Number(value))}%</strong>
+                    </div>
+                  )}
+                />
+              }
+            />
+            <Line dataKey="cpu" type="monotone" stroke="var(--color-cpu)" strokeWidth={1.75} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+            <Line dataKey="memory" type="monotone" stroke="var(--color-memory)" strokeWidth={1.75} dot={false} activeDot={{ r: 3 }} isAnimationActive={false} />
+          </LineChart>
+        </ChartContainer>
+      </section>
 
       <div className="ov-lower">
-        <div className="tab-section">
-          <h3 className="tab-section-title">Who is online</h3>
+        <section className="tab-section">
+          <div className="section-head">
+            <h3 className="tab-section-title">Online now</h3>
+            {online.length > 0 && <button className="section-link" onClick={() => store.setServerTab('players')}>Manage</button>}
+          </div>
           <div className="ov-panel">
             {online.length === 0 ? (
               <EmptyState
-                icon={<IconUsers size={40} />}
+                icon={<IconUsers size={18} />}
                 title={running ? 'Nobody is playing right now' : 'Server is not running'}
                 description={
                   running
-                    ? 'Share the address above and players will show up here as they join.'
+                    ? 'Share the address and players will show up here as they join.'
                     : 'Start the server to let players connect.'
                 }
               />
@@ -188,40 +164,39 @@ export default function OverviewTab({ server }: { server: Server }) {
               <ul className="ov-players">
                 {online.map((p) => (
                   <li key={p.id} className="ov-player">
-                    <Avatar name={p.username} color={p.avatar} size={30} />
-                    <div className="ov-player-body">
-                      <span className="ov-player-name">
-                        {p.username}
-                        {p.isOp && <span className="op-tag">operator</span>}
-                      </span>
-                      <span className="ov-player-meta">Joined {formatRelative(p.connectedAt)}</span>
-                    </div>
+                    <Avatar name={p.username} color={p.avatar} size={26} />
+                    <span className="ov-player-name">{p.username}</span>
+                    {p.isOp && <span className="ov-op">Operator</span>}
+                    <span className="ov-player-meta">{formatRelative(p.connectedAt).replace(' ago', '')}</span>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-        </div>
+        </section>
 
-        <div className="tab-section">
-          <h3 className="tab-section-title">What happened recently</h3>
-          <div className="ov-panel">
-            {events.length === 0 ? (
-              <EmptyState title="Nothing yet" description="Starts, stops, backups, and updates will show up here." />
-            ) : (
-              <ul className="ov-events">
-                {events.map((e) => (
-                  <li key={e.id} className="ov-event">
-                    <span className={`ov-event-dot dot-${e.kind}`} />
-                    <span className="ov-event-msg">{e.message}</span>
-                    <span className="ov-event-time">{formatRelative(e.at)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+        <section className="tab-section">
+          <h3 className="tab-section-title">Details</h3>
+          <dl className="ov-details">
+            <Fact label="Software" value={`${softwareLabel(server.type)} ${server.version}`} />
+            <Fact label="Build" value={server.build || '—'} mono />
+            <Fact label="Public address" value={server.sharing.address ?? 'Not shared'} mono={Boolean(server.sharing.address)} />
+            <Fact label="Local address" value={`localhost:${server.port}`} mono />
+            <Fact label="Java" value={server.javaRuntime || '—'} />
+            <Fact label="Disk" value={formatMegabytes(server.diskUsed)} />
+            <Fact label="Status" value={statusLabels[server.status]} />
+          </dl>
+        </section>
       </div>
+
+      <section className="tab-section">
+        <h3 className="tab-section-title">Recent activity</h3>
+        {events.length === 0 ? (
+          <p className="section-desc">Starts, stops, backups, and updates will show up here.</p>
+        ) : (
+          <Timeline events={events} />
+        )}
+      </section>
     </div>
   );
 }
@@ -252,11 +227,25 @@ function useChartClock(active: boolean) {
   return now;
 }
 
-function Fact({ label, value, mono, wide }: { label: string; value: string; mono?: boolean; wide?: boolean }) {
+function Fact({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className={`fact ${wide ? 'fact-wide' : ''}`}>
-      <span className="fact-label">{label}</span>
-      <span className={`fact-value ${mono ? 'mono' : ''}`} title={value}>{value}</span>
+    <div className="fact">
+      <dt className="fact-label">{label}</dt>
+      <dd className={`fact-value ${mono ? 'mono' : ''}`} title={value}>{value}</dd>
+    </div>
+  );
+}
+
+function UsageStat({ label, value, suffix, pct, tone }: { label: string; value: string; suffix?: string; pct?: number; tone?: 'accent' | 'warning' | 'danger' }) {
+  return (
+    <div className="ov-stat">
+      <span className="ov-stat-label">{label}</span>
+      <span className="ov-stat-value">{value}{suffix && <span className="ov-stat-suffix">{suffix}</span>}</span>
+      {pct !== undefined && (
+        <span className={`ov-stat-bar tone-${tone ?? 'accent'}`}>
+          <span style={{ transform: `scaleX(${Math.max(0, Math.min(100, pct)) / 100})` }} />
+        </span>
+      )}
     </div>
   );
 }

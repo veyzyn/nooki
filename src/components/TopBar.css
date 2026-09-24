@@ -1,0 +1,13 @@
+.topbar { position: relative; z-index: 5; display: flex; height: var(--topbar-h); flex: 0 0 auto; align-items: center; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border); user-select: none; }
+.topbar-spacer { align-self: stretch; min-width: 24px; flex: 1; }
+.topbar-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.topbar-actions:empty { display: none; }
+
+.crumbs { display: flex; min-width: 0; align-items: center; gap: 4px; }
+.crumb { display: inline-flex; min-width: 0; height: 26px; align-items: center; gap: 8px; padding: 0 6px; border-radius: var(--radius-md); color: var(--foreground); font-size: 13px; font-weight: 500; white-space: nowrap; }
+.crumb-link { color: var(--muted-foreground); transition: background-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth); }
+.crumb-link:hover { background: var(--bg-hover); color: var(--foreground); }
+.crumb-sep { flex: 0 0 auto; color: var(--text-faint); }
+.crumb-server .server-avatar { border-radius: 5px; }
+.crumb-name { overflow: hidden; max-width: 36vw; text-overflow: ellipsis; }
+.crumb-count { color: var(--muted-foreground); font-weight: 400; font-variant-numeric: tabular-nums; }

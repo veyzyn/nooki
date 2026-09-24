@@ -1,25 +1,11 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useStore } from '../state/store';
 import type { Server, ServerTab } from '../types';
-import {
-  IconArrowLeft,
-  IconBox,
-  IconCopy,
-  IconDatabase,
-  IconFileText,
-  IconFolderOpen,
-  IconGrid,
-  IconGlobe,
-  IconMod,
-  IconPlug,
-  IconSettings,
-  IconTerminal,
-  IconUsers,
-} from '../components/Icons';
-import ServerIcon from '../components/ServerIcon';
+import { IconCheck, IconCopy, IconPlay } from '../components/Icons';
+import { PageActions } from '../components/TopBar';
 import { ConfirmDialog, Spinner } from '../components/ui';
-import { isBusy, softwareLabel, statusLabels, statusTone } from '../format';
+import { isBusy, statusLabels } from '../format';
 import OverviewTab from './tabs/OverviewTab';
 import ConsoleTab from './tabs/ConsoleTab';
 import PlayersTab from './tabs/PlayersTab';
@@ -34,16 +20,16 @@ import './ServerDetail.css';
 
 const FilesTab = lazy(() => import('./tabs/FilesTab'));
 
-const baseTabs: { id: ServerTab; label: string; icon: ReactNode }[] = [
-  { id: 'overview', label: 'Overview', icon: <IconGrid size={14} /> },
-  { id: 'console', label: 'Console', icon: <IconTerminal size={14} /> },
-  { id: 'players', label: 'Players', icon: <IconUsers size={14} /> },
-  { id: 'worlds', label: 'Worlds', icon: <IconGlobe size={14} /> },
-  { id: 'files', label: 'Files', icon: <IconFolderOpen size={14} /> },
-  { id: 'databases', label: 'Databases', icon: <IconDatabase size={14} /> },
-  { id: 'settings', label: 'Settings', icon: <IconSettings size={14} /> },
-  { id: 'logs', label: 'Logs', icon: <IconFileText size={14} /> },
-  { id: 'backups', label: 'Backups', icon: <IconBox size={14} /> },
+const baseTabs: { id: ServerTab; label: string }[] = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'console', label: 'Console' },
+  { id: 'players', label: 'Players' },
+  { id: 'worlds', label: 'Worlds' },
+  { id: 'files', label: 'Files' },
+  { id: 'databases', label: 'Databases' },
+  { id: 'settings', label: 'Settings' },
+  { id: 'logs', label: 'Logs' },
+  { id: 'backups', label: 'Backups' },
 ];
 
 export default function ServerDetail({ server }: { server: Server }) {
@@ -64,13 +50,13 @@ export default function ServerDetail({ server }: { server: Server }) {
   const tabs = server.type === 'paper'
     ? [
       ...baseTabs.slice(0, 3),
-      { id: 'plugins' as const, label: 'Plugins', icon: <IconPlug size={14} /> },
+      { id: 'plugins' as const, label: 'Plugins' },
       ...baseTabs.slice(3),
     ]
     : (server.type === 'fabric' || server.type === 'forge' || server.type === 'neoforge')
       ? [
         ...baseTabs.slice(0, 3),
-        { id: 'mods' as const, label: 'Mods', icon: <IconMod size={14} /> },
+        { id: 'mods' as const, label: 'Mods' },
         ...baseTabs.slice(3),
       ]
       : baseTabs;
@@ -79,100 +65,61 @@ export default function ServerDetail({ server }: { server: Server }) {
     void writeText(address);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
-    store.pushToast({ tone: 'info', title: 'Address copied', detail: address });
   };
 
   return (
     <div className="view detail">
-      <header className="detail-head">
-        <div className="detail-head-top">
-          <button className="back-btn" onClick={store.closeServer}>
-            <IconArrowLeft size={14} />
-            All servers
+      <PageActions>
+        <button
+          className={`address-chip ${copied ? 'is-copied' : ''}`}
+          onClick={copyAddress}
+          title={server.sharing.address ? 'Copy public address' : 'Copy local address'}
+          aria-label={copied ? 'Address copied' : `Copy address ${address}`}
+        >
+          <span className="mono">{address}</span>
+          <span className="icon-swap" data-swapped={copied || undefined} aria-hidden="true">
+            <IconCopy size={12} />
+            <IconCheck size={13} />
+          </span>
+        </button>
+        {busy && (
+          <span className="busy-note">
+            <Spinner size={12} />
+            {statusLabels[server.status]}
+          </span>
+        )}
+        {shutdownStuck && (
+          <button className="btn btn-sm btn-danger" onClick={() => store.forceStopServer(server.id)}>Force stop</button>
+        )}
+        {(server.status === 'stopped' || server.status === 'crashed') && (
+          <button className="btn btn-sm btn-primary" disabled={busy || operationBusy} onClick={() => store.startServer(server.id)}>
+            <IconPlay size={12} /> Start
           </button>
-        </div>
-
-        <div className="detail-identity">
-          <div className="detail-icon">
-            <ServerIcon server={server} size={48} />
-          </div>
-          <div className="detail-titles">
-            <div className="detail-name-row">
-              <h1 className="detail-name">{server.name}</h1>
-              <span className={`status-badge status-${statusTone(server.status)}`}>
-                {busy && <Spinner size={10} />}
-                {statusLabels[server.status]}
-              </span>
-            </div>
-            <div className="detail-meta">
-              <span>
-                {softwareLabel(server.type)} {server.version}
-              </span>
-              <span className="sep">·</span>
-              <button className={`address-chip ${copied ? 'is-copied' : ''}`} onClick={copyAddress} title={server.sharing.address ? 'Copy public address' : 'Copy local address'}>
-                <span className="mono">{address}</span>
-                <IconCopy size={12} />
-              </button>
-              {running && (
-                <>
-                  <span className="sep">·</span>
-                  <span>
-                    {server.players}/{server.maxPlayers} online
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-
-          <div className="detail-controls">
-            {shutdownStuck && (
-              <button className="btn btn-danger" onClick={() => store.forceStopServer(server.id)}>Force stop</button>
-            )}
-            {(server.status === 'stopped' || server.status === 'crashed') && (
-              <button className="btn btn-primary" disabled={busy || operationBusy} onClick={() => store.startServer(server.id)}>
-                Start server
+        )}
+        {(running || starting) && (
+          <>
+            {running && (
+              <button className="btn btn-sm btn-secondary" disabled={operationBusy} onClick={() => store.restartServer(server.id)}>
+                Restart
               </button>
             )}
-            {(running || starting) && (
-              <>
-                {running && (
-                  <button className="btn btn-secondary" disabled={operationBusy} onClick={() => store.restartServer(server.id)}>
-                    Restart
-                  </button>
-                )}
-                <button className="btn btn-secondary" disabled={operationBusy} onClick={() => setConfirmStop(true)}>
-                  Stop
-                </button>
-              </>
-            )}
-            {busy && (
-              <span className="busy-note">
-                <Spinner size={13} />
-                {statusLabels[server.status]}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <nav className="detail-tabs" aria-label="Server sections">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`detail-tab ${serverTab === tab.id ? 'active' : ''}`}
-              onClick={() => setServerTab(tab.id)}
-              aria-current={serverTab === tab.id ? 'page' : undefined}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-              {tab.id === 'players' && running && server.players > 0 && (
-                <span className="tab-count">{server.players}</span>
-              )}
+            <button className="btn btn-sm btn-secondary" disabled={operationBusy} onClick={() => setConfirmStop(true)}>
+              Stop
             </button>
-          ))}
-        </nav>
-      </header>
+          </>
+        )}
+      </PageActions>
 
-      <div className="detail-body">
+      <TabBar
+        tabs={tabs.map((tab) => ({
+          ...tab,
+          count: tab.id === 'players' && running && server.players > 0 ? server.players : undefined,
+        }))}
+        value={serverTab}
+        onChange={setServerTab}
+      />
+
+      <div key={serverTab} className="detail-body tab-enter">
         {serverTab === 'overview' && <OverviewTab server={server} />}
         {serverTab === 'console' && <ConsoleTab server={server} />}
         {serverTab === 'players' && <PlayersTab server={server} />}
@@ -210,5 +157,53 @@ export default function ServerDetail({ server }: { server: Server }) {
         }}
       />
     </div>
+  );
+}
+
+/* Underline tabs. The indicator is a 1px-wide bar positioned and stretched
+   with transform only, so sliding it never touches layout. It moves between
+   tabs (spatial consistency: where did the selection go) with ease-in-out. */
+function TabBar({ tabs, value, onChange }: { tabs: { id: ServerTab; label: string; count?: number }[]; value: ServerTab; onChange: (tab: ServerTab) => void }) {
+  const navRef = useRef<HTMLElement>(null);
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+  const [settled, setSettled] = useState(false);
+
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    const indicator = indicatorRef.current;
+    if (!nav || !indicator) return undefined;
+    const place = () => {
+      const button = nav.querySelector<HTMLElement>(`[data-tab="${value}"]`);
+      if (!button) { indicator.style.opacity = '0'; return; }
+      indicator.style.opacity = '1';
+      indicator.style.transform = `translateX(${button.offsetLeft + 8}px) scaleX(${Math.max(0, button.offsetWidth - 16)})`;
+    };
+    place();
+    const observer = new ResizeObserver(place);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, [value, tabs.length]);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setSettled(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <nav ref={navRef} className="detail-tabs" aria-label="Server sections" data-settled={settled || undefined}>
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          data-tab={tab.id}
+          className={`detail-tab ${value === tab.id ? 'active' : ''}`}
+          onClick={() => onChange(tab.id)}
+          aria-current={value === tab.id ? 'page' : undefined}
+        >
+          <span>{tab.label}</span>
+          {tab.count !== undefined && <span className="tab-count">{tab.count}</span>}
+        </button>
+      ))}
+      <span ref={indicatorRef} className="detail-tab-indicator" aria-hidden="true" />
+    </nav>
   );
 }

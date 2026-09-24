@@ -55,6 +55,15 @@ export function formatRelative(ts: number, nowTs = Date.now()): string {
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+export function formatUntil(ts: number, nowTs = Date.now()): string {
+  const diff = ts - nowTs;
+  if (diff <= MIN) return 'soon';
+  if (diff < HOUR) return `in ${Math.round(diff / MIN)} min`;
+  if (diff < DAY) return `in ${Math.round(diff / HOUR)}h`;
+  const d = Math.round(diff / DAY);
+  return d === 1 ? 'tomorrow' : `in ${d} days`;
+}
+
 export function formatClock(ts: number): string {
   return new Date(ts).toLocaleTimeString(undefined, {
     hour: '2-digit',

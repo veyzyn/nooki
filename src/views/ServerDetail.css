@@ -1,29 +1,26 @@
 .detail { overflow: hidden; }
-.detail-head { flex: 0 0 auto; border-bottom: 1px solid var(--border); background: var(--background); }
-.detail-head-top { padding: 12px 24px 0; }
-.back-btn { display: inline-flex; height: 28px; align-items: center; gap: 7px; padding: 0 9px; border-radius: var(--radius-lg); color: var(--muted-foreground); font-size: 11px; font-weight: 550; }
-.back-btn:hover { background: var(--accent); color: var(--accent-foreground); }
-.detail-identity { display: flex; align-items: flex-start; gap: 14px; padding: 14px 24px 18px; }
-.detail-icon { flex: 0 0 auto; }
-.detail-titles { min-width: 0; flex: 1; }
-.detail-name-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
-.detail-name { overflow: hidden; color: var(--foreground); font-size: 22px; font-weight: 650; letter-spacing: -.025em; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
-.detail-meta { display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: 11px; flex-wrap: wrap; }
-.sep { color: color-mix(in oklab, var(--muted-foreground) 45%, transparent); }
-.address-chip { display: inline-flex; max-width: min(340px, 38vw); align-items: center; gap: 7px; padding: 4px 9px; border: 1px solid var(--border); border-radius: 999px; background: var(--muted); color: var(--muted-foreground); font-size: 10px; }
+
+.address-chip { display: inline-flex; max-width: min(300px, 30vw); height: 28px; align-items: center; gap: 8px; padding: 0 9px 0 10px; border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--muted-foreground); font-size: 12px; transition: border-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth), background-color var(--dur) var(--ease-smooth), transform 160ms var(--ease-out); }
 .address-chip .mono { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .address-chip:hover { border-color: var(--border-strong); color: var(--foreground); }
-.address-chip.is-copied { border-color: color-mix(in oklab, var(--st-running) 32%, var(--border)); background: var(--st-running-bg); color: var(--st-running); }
-.detail-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
-.busy-note { display: flex; align-items: center; gap: 7px; color: var(--muted-foreground); font-size: 11px; }
-.detail-tabs { display: flex; gap: 3px; padding: 0 24px 10px; overflow-x: auto; }
-.detail-tab { position: relative; display: flex; height: 32px; flex: 0 0 auto; align-items: center; gap: 7px; padding: 0 10px; border-radius: var(--radius-lg); color: var(--muted-foreground); font-size: 11px; font-weight: 600; }
-.detail-tab:hover { background: var(--accent); color: var(--accent-foreground); }
-.detail-tab.active { background: color-mix(in oklab, var(--primary) 14%, transparent); color: color-mix(in oklab, var(--primary) 78%, white); }
-.detail-tab.active::after { display: none; }
-.detail-tab.active svg { color: currentColor; }
-.tab-count { min-width: 17px; padding: 1px 5px; border-radius: 999px; background: color-mix(in oklab, var(--primary) 16%, transparent); color: var(--primary); font-size: 9px; font-weight: 700; text-align: center; }
+.address-chip:active { transform: scale(0.97); }
+.address-chip.is-copied { color: var(--foreground); }
+.address-chip.is-copied .icon-swap { color: var(--st-running); }
+.busy-note { display: flex; align-items: center; gap: 7px; margin: 0 4px; color: var(--muted-foreground); font-size: 12px; }
+
+.detail-tabs { position: relative; display: flex; flex: 0 0 auto; gap: 2px; padding: 0 12px; overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: none; }
+.detail-tab { position: relative; isolation: isolate; display: flex; height: 40px; flex: 0 0 auto; align-items: center; gap: 6px; padding: 0 10px; color: var(--muted-foreground); font-size: 13px; font-weight: 500; transition: color 120ms var(--ease-smooth); }
+.detail-tab::before { content: ""; position: absolute; inset: 6px 2px; z-index: -1; border-radius: var(--radius-md); background: transparent; transition: background-color 120ms var(--ease-smooth); }
+.detail-tab:hover { color: var(--foreground); }
+.detail-tab:hover::before { background: var(--bg-hover); }
+.detail-tab.active { color: var(--foreground); }
+.detail-tab-indicator { position: absolute; bottom: -1px; left: 0; width: 1px; height: 2px; background: var(--foreground); transform-origin: left center; pointer-events: none; }
+.detail-tabs[data-settled] .detail-tab-indicator { transition: transform 220ms var(--ease-in-out); }
+.tab-count { min-width: 18px; padding: 1px 5px; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 9%, transparent); color: var(--foreground); font-size: 10.5px; font-weight: 500; font-variant-numeric: tabular-nums; text-align: center; }
 .detail-body { display: flex; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; }
+/* Switching tabs swaps the whole content area: an opacity-only cross-fade
+   keeps it from flashing without adding movement to a frequent action. */
+.tab-enter { animation: fadeIn 150ms var(--ease-out) both; }
 .files-tab-loader { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 16px; padding: 20px 24px 24px; }
 .files-tab-loader-head { display: flex; height: 39px; align-items: center; justify-content: space-between; }
 .files-tab-loader-head span:first-child { width: 110px; height: 27px; }
@@ -33,26 +30,25 @@
 .files-tab-loader-row { width: calc(100% - 28px); height: 38px; margin: 7px 14px; border-radius: var(--r-sm); }
 .files-tab-loader-head span,
 .files-tab-loader-row { background: color-mix(in oklab, var(--muted) 64%, transparent); animation: skeletonPulse 1.15s ease-in-out infinite; }
-.tab { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 20px; padding: 22px 24px 28px; overflow-y: auto; }
+.tab { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 24px; padding: 24px 28px 40px; overflow-y: auto; }
 .tab > .settings-group, .tab > .callout, .tab > .eula, .tab > .review, .tab > .save-bar { flex-shrink: 0; }
 .tab-section { display: flex; flex-direction: column; gap: 12px; }
-.tab-section-title { color: var(--foreground); font-size: 12px; font-weight: 650; }
+.tab-section-title { color: var(--foreground); font-size: 13px; font-weight: 600; }
 .settings-group { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); color: var(--card-foreground); }
-.settings-group:hover { border-color: var(--border-strong); }
-.settings-group-head { padding: 14px 16px; border-bottom: 1px solid var(--border); }
-.settings-group-title { color: var(--foreground); font-size: 12px; font-weight: 650; }
-.settings-group-body { display: flex; flex-direction: column; gap: 18px; padding: 16px; }
+.settings-group-head { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.settings-group-title { color: var(--foreground); font-size: 13px; font-weight: 600; }
+.settings-group-body { display: flex; flex-direction: column; gap: 18px; padding: 18px; }
 .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .three-col { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 
 @media (max-width: 980px) {
-  .detail-icon { display: none; }
   .detail-tab { padding-inline: 8px; }
-  .detail-tab span:not(.tab-count) { display: none; }
   .two-col, .three-col { grid-template-columns: 1fr; }
+  .address-chip .mono { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .detail-tabs[data-settled] .detail-tab-indicator { transition: none; }
   .files-tab-loader-head span,
   .files-tab-loader-row { animation: none; }
 }

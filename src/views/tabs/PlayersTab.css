@@ -1,124 +1,33 @@
-.players-tab {
-  gap: var(--s-4);
-  padding: var(--s-5) var(--s-6) var(--s-6);
-}
+/* Padding comes from .tab. Sections keep their natural height. */
+.players-tab { gap: 16px; }
+.players-tab > * { flex-shrink: 0; }
 
-.players-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
-  flex-shrink: 0;
-}
+.players-head { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 12px; }
 
-.players-panel {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-}
+/* One bordered list that sizes to its rows instead of filling the tab. */
+.players-panel { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--card); }
 
-.panel-note {
-  padding: var(--s-4);
-  background: var(--st-info-bg);
-  border: 1px solid color-mix(in oklab, var(--st-info) 22%, var(--border));
-  border-radius: var(--r-md);
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
+.panel-note { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); color: var(--muted-foreground); font-size: 12.5px; line-height: 1.5; }
+.players-panel > .panel-note { border-width: 0 0 1px; border-radius: 0; background: color-mix(in oklab, var(--foreground) 2%, transparent); }
 
-.players-panel > .panel-note {
-  border-width: 0 0 1px;
-  border-radius: 0;
-}
+.player-list { display: flex; flex-direction: column; }
 
-.player-list {
-  display: flex;
-  flex-direction: column;
-}
+/* Rows are scanned constantly: colour-only hover. */
+.player-row { display: flex; min-height: 56px; align-items: center; gap: 12px; padding: 8px 12px 8px 16px; border-bottom: 1px solid var(--border); transition: background-color 120ms var(--ease-smooth); }
+.player-row:last-child { border-bottom: 0; }
+.player-row:hover { background: color-mix(in oklab, var(--foreground) 2.5%, transparent); }
 
-.player-row {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
+.player-main { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 1px; }
+.player-name { display: flex; min-width: 0; align-items: center; gap: 8px; color: var(--foreground); font-size: 13px; font-weight: 500; }
+.player-sub { overflow: hidden; color: var(--muted-foreground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
-.player-row:last-child {
-  border-bottom: none;
-}
+.op-tag { display: inline-flex; height: 20px; align-items: center; padding: 0 7px; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--muted-foreground); font-size: 11px; font-weight: 500; line-height: 1; }
 
-.player-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+.player-actions { display: flex; flex-shrink: 0; align-items: center; gap: 4px; }
 
-.player-name {
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-.op-tag {
-  font-size: var(--fs-xs);
-  padding: 1px var(--s-2);
-  border-radius: var(--r-pill);
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.player-sub {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-}
-
-.player-vitals {
-  display: flex;
-  gap: var(--s-4);
-  flex-shrink: 0;
-}
-
-.vital {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 54px;
-}
-
-.vital-l {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.vital-v {
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
-.player-actions {
-  display: flex;
-  gap: var(--s-2);
-  flex-shrink: 0;
-}
-
-.danger-text {
-  color: var(--danger);
-}
-
-.danger-text:hover {
-  color: var(--danger-hover);
-}
+/* Beats .btn-ghost / .icon-btn colours regardless of stylesheet order. */
+.danger-text,
+.btn.danger-text,
+.icon-btn.danger-text { color: var(--destructive); }
+.btn.danger-text:hover:not(:disabled),
+.icon-btn.danger-text:hover:not(:disabled) { background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--danger-hover); }

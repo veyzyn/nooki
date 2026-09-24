@@ -1,0 +1,14 @@
+.cmdk-backdrop { position: fixed; inset: 0; z-index: 60; background: color-mix(in oklab, black 45%, transparent); }
+.cmdk { position: fixed; top: 16vh; left: 50%; z-index: 61; display: flex; width: min(600px, calc(100vw - 32px)); max-height: min(460px, 68vh); flex-direction: column; overflow: hidden; border-radius: var(--radius-2xl); background: var(--popover); box-shadow: var(--sh-xl); transform: translateX(-50%); outline: none; }
+.cmdk-input-row { display: flex; height: 48px; flex: 0 0 auto; align-items: center; gap: 10px; padding: 0 14px 0 16px; border-bottom: 1px solid var(--border); color: var(--muted-foreground); }
+.cmdk-input { min-width: 0; flex: 1; height: 100%; border: 0; background: transparent; color: var(--foreground); font-size: 14px; outline: none; }
+.cmdk-input::placeholder { color: var(--text-faint); }
+.cmdk-list { min-height: 0; flex: 1; padding: 6px; overflow-y: auto; scroll-padding: 6px; }
+.cmdk-group { padding: 10px 10px 6px; color: var(--text-faint); font-size: 11.5px; font-weight: 500; }
+.cmdk-item { display: flex; height: 38px; align-items: center; gap: 10px; padding: 0 10px; border-radius: var(--radius-lg); color: var(--muted-foreground); font-size: 13px; }
+.cmdk-item.is-active { background: color-mix(in oklab, var(--foreground) 7%, transparent); color: var(--foreground); }
+.cmdk-item-icon { display: grid; width: 18px; flex: 0 0 auto; place-items: center; }
+.cmdk-item-icon .server-avatar { border-radius: 5px; }
+.cmdk-item-label { overflow: hidden; min-width: 0; flex: 1; color: var(--foreground); text-overflow: ellipsis; white-space: nowrap; }
+.cmdk-item-hint { color: var(--muted-foreground); font-size: 12px; }
+.cmdk-empty { padding: 32px 12px; color: var(--muted-foreground); font-size: 13px; text-align: center; }

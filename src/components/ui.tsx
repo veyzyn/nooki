@@ -1,4 +1,4 @@
-import { useState, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactElement, type ReactNode } from 'react';
 import { open as openDirectory } from '@tauri-apps/plugin-dialog';
 import { CircleAlert, LoaderCircle } from 'lucide-react';
 import { IconCheck, IconWarning, IconX } from './Icons';
@@ -7,7 +7,6 @@ import { Switch as ShadcnSwitch } from './ui/switch';
 import { Label } from './ui/label';
 import { Select as ShadcnSelect, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { Progress as ShadcnProgress } from './ui/progress';
 import { Alert, AlertAction, AlertDescription, AlertTitle } from './ui/alert';
 import './ui.css';
 
@@ -230,13 +229,43 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ value, options, onChange, full }: SegmentedProps<T>) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [clip, setClip] = useState<string | null>(null);
+  const [settled, setSettled] = useState(false);
+
+  // The active state is a second copy of the options, clipped to the selected
+  // one. Moving the clip slides background and text colour together, which
+  // per-button colour transitions can never keep in sync.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return undefined;
+    const measure = () => {
+      const button = root.querySelector<HTMLElement>(`[data-value="${CSS.escape(value)}"]`);
+      if (!button) { setClip(null); return; }
+      const left = button.offsetLeft;
+      const right = root.clientWidth - (button.offsetLeft + button.offsetWidth);
+      setClip(`inset(3px ${right}px 3px ${left}px round 5px)`);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [value, options.length]);
+
+  useEffect(() => {
+    if (clip === null || settled) return undefined;
+    const frame = requestAnimationFrame(() => setSettled(true));
+    return () => cancelAnimationFrame(frame);
+  }, [clip, settled]);
+
   return (
-    <div className={`segmented ${full ? 'is-full' : ''}`} role="tablist">
+    <div ref={rootRef} className={`segmented ${full ? 'is-full' : ''}`} role="tablist" data-settled={settled || undefined}>
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           role="tab"
+          data-value={option.value}
           aria-selected={value === option.value}
           className={`segmented-btn ${value === option.value ? 'active' : ''}`}
           onClick={() => onChange(option.value)}
@@ -244,14 +273,30 @@ export function Segmented<T extends string>({ value, options, onChange, full }: 
           {option.label}
         </button>
       ))}
+      {clip && (
+        <div className="segmented-active" aria-hidden="true" style={{ clipPath: clip }}>
+          {options.map((option) => (
+            <span key={option.value} className="segmented-btn">{option.label}</span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 /* ----------------------------- Progress ----------------------------- */
 
+/* Progress fills with transform: scaleX so updates never trigger layout; the
+   fill glides to each new value rather than jumping. */
 export function ProgressBar({ value, tone = 'accent' }: { value: number; tone?: 'accent' | 'warning' | 'danger' | 'info' }) {
-  return <ShadcnProgress className={`progress tone-${tone}`} value={Math.max(0, Math.min(100, value))} />;
+  const pct = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
+  return (
+    <div className={`progress tone-${tone}`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pct)}>
+      <div data-slot="progress-track">
+        <div data-slot="progress-indicator" style={{ transform: `scaleX(${pct / 100})` }} />
+      </div>
+    </div>
+  );
 }
 
 export function Meter({

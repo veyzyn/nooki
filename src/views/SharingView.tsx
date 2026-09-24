@@ -4,6 +4,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { IconCloud, IconCopy, IconUpload } from '../components/Icons';
 import { Select, Spinner } from '../components/ui';
+import { PageActions } from '../components/TopBar';
 import { formatClock } from '../format';
 import { useConsoleLines, useStore } from '../state/store';
 import type { EphemeralWorldScan, OperationEvent, Server, VersionOption } from '../types';
@@ -20,15 +21,14 @@ export default function QuickServerView() {
 
   return (
     <div className="view">
-      <div className="view-header">
-        <div>
-          <h1 className="view-title">Quick server</h1>
-          <p className="view-subtitle">Turn a Minecraft world into a temporary server in one step</p>
+      <div className="page">
+        <div className="page-inner is-narrow">
+          <header className="page-intro">
+            <h1 className="page-title">Quick server</h1>
+            <p className="page-lead">Turn any Minecraft world into a temporary server in one step.</p>
+          </header>
+          <QuickWorldDrop />
         </div>
-      </div>
-
-      <div className="dash-body sharing-body">
-        <QuickWorldDrop />
       </div>
     </div>
   );
@@ -243,11 +243,13 @@ function QuickWorldSession({ server }: { server: Server }) {
             <p>Minecraft {server.version} <span>·</span> 4 GB memory</p>
           </div>
         </div>
-        <button className="btn btn-danger" disabled={stopping} onClick={() => store.stopServer(server.id)}>
-          {stopping && <Spinner size={11} />}
-          {stopping ? 'Stopping…' : 'Stop'}
-        </button>
       </div>
+      <PageActions>
+        <button className="btn btn-sm btn-danger" disabled={stopping} onClick={() => store.stopServer(server.id)}>
+          {stopping && <Spinner size={11} />}
+          {stopping ? 'Stopping…' : 'Stop quick server'}
+        </button>
+      </PageActions>
 
       <div className="quick-session-body">
         <button className={`quick-session-address state-${addressState}`} disabled={!address} onClick={() => void copy()}>

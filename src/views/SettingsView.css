@@ -1,6 +1,14 @@
-.settings-section {
-  width: 100%;
-  max-width: 680px;
+.settings-page { max-width: 980px; gap: 0; }
+.settings-page > .page-intro { padding-bottom: 28px; }
+
+/* Settings rows: label and description on the left, controls on the right. */
+.settings-row { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; padding: 28px 0; border-top: 1px solid var(--border); }
+.settings-row-label { display: flex; flex-direction: column; gap: 4px; }
+.settings-row-label .section-desc { line-height: 1.5; }
+.settings-row-body { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
+
+@media (max-width: 1000px) {
+  .settings-row { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 }
 
 .relay-access-card {
@@ -8,7 +16,7 @@
 }
 
 .relay-access-card.is-active {
-  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  border-color: color-mix(in oklab, var(--st-running) 30%, var(--border));
 }
 
 .relay-access-status {

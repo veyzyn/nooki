@@ -3,8 +3,11 @@ import { useStore } from '../state/store';
 import type { BackupType } from '../types';
 import { IconBox, IconFolder } from '../components/Icons';
 import { Callout, ConfirmDialog, EmptyState, Modal, ProgressBar, Segmented, Select } from '../components/ui';
-import { formatBytes, formatDateTime, formatRelative } from '../format';
+import { formatBytes, formatDateTime, formatRelative, formatUntil } from '../format';
+import { PageActions } from '../components/TopBar';
+import ServerIcon from '../components/ServerIcon';
 import './tabs/ServerBackupsTab.css';
+import './BackupsView.css';
 
 const typeLabels: Record<BackupType, string> = { manual: 'Manual', scheduled: 'Scheduled', safety: 'Safety', 'pre-update': 'Pre-update' };
 
@@ -26,57 +29,64 @@ export default function BackupsView() {
 
   return (
     <div className="view">
-      <div className="view-header">
-        <div>
-          <h1 className="view-title">Backups</h1>
-          <p className="view-subtitle">{store.backups.length} backup{store.backups.length !== 1 ? 's' : ''} · {formatBytes(total)} stored</p>
-        </div>
-        <button className="btn btn-secondary" onClick={() => store.revealPath(store.settings.backupFolder)}><IconFolder size={14} /> Open backup folder</button>
-      </div>
+      <PageActions>
+        <button className="btn btn-sm btn-secondary" onClick={() => store.revealPath(store.settings.backupFolder)}><IconFolder size={13} /> Open folder</button>
+      </PageActions>
 
-      <div className="dash-body">
-        {upcoming && (
-          <div className="dash-section">
-            <span className="text-muted text-sm">Next scheduled backup: {store.servers.find((server) => server.id === upcoming[0])?.name ?? 'Unknown server'} · {formatDateTime(upcoming[1].nextRunAt!)}</span>
+      {store.backups.length > 0 && (
+        <div className="page-toolbar">
+          <div className="backups-server-filter">
+            <Select
+              value={serverId}
+              ariaLabel="Filter backups by server"
+              options={[{ value: 'all', label: 'All servers' }, ...store.servers.map((server) => ({ value: server.id, label: server.name }))]}
+              onChange={setServerId}
+            />
           </div>
-        )}
+          <Segmented value={type} onChange={setType} options={[
+            { value: 'all', label: 'All' }, { value: 'manual', label: 'Manual' },
+            { value: 'scheduled', label: 'Scheduled' }, { value: 'safety', label: 'Safety' },
+            { value: 'pre-update', label: 'Pre-update' },
+          ]} />
+          <div className="grow" />
+          <span className="backups-summary">
+            {store.backups.length} backup{store.backups.length !== 1 ? 's' : ''} · {formatBytes(total)}
+            {upcoming && <> · next {formatUntil(upcoming[1].nextRunAt!)} for {store.servers.find((server) => server.id === upcoming[0])?.name ?? 'Unknown server'}</>}
+          </span>
+        </div>
+      )}
+
+      <div className="page">
         {store.backups.length === 0 ? (
-          <EmptyState icon={<IconBox size={48} />} title="No backups yet" description="Backups are created manually or on a schedule. Open a server to set one up." />
+          <div className="page-empty">
+            <EmptyState icon={<IconBox size={18} />} title="No backups yet" description="Backups are created manually or on a schedule. Open a server to set one up." />
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="page-empty">
+            <EmptyState title="No backups match" description="Change the server or type filter." />
+          </div>
         ) : (
-          <>
-            <div className="logs-toolbar">
-              <Select
-                value={serverId}
-                ariaLabel="Filter backups by server"
-                options={[{ value: 'all', label: 'All servers' }, ...store.servers.map((server) => ({ value: server.id, label: server.name }))]}
-                onChange={setServerId}
-              />
-              <Segmented value={type} onChange={setType} options={[
-                { value: 'all', label: 'All' }, { value: 'manual', label: 'Manual' },
-                { value: 'scheduled', label: 'Scheduled' }, { value: 'safety', label: 'Safety' },
-                { value: 'pre-update', label: 'Pre-update' },
-              ]} />
-            </div>
-            {visible.length === 0 ? <EmptyState title="No backups match" description="Change the server or type filter." /> : (
-              <div className="backups-panel">
-                <div className="backups-head-row"><span>Created</span><span>Server / type</span><span>Version</span><span>Size</span><span /></div>
-                {visible.map((backup) => {
-                  const server = store.servers.find((item) => item.id === backup.serverId);
-                  const missing = Boolean(backup.failed || backup.errorMessage);
-                  return <div key={backup.id} className={`backups-row ${missing ? 'is-failed' : ''}`}>
-                    <div className="backups-when"><span className="backups-date">{formatDateTime(backup.createdAt)}</span><span className="backups-detail">{formatRelative(backup.createdAt)}</span>{backup.notes && <span className="backups-notes">{backup.notes}</span>}</div>
-                    <span className="backups-cell">{backup.serverName}<br /><span className="text-muted text-sm">{typeLabels[backup.type]}</span></span>
-                    <span className="backups-cell mono">{backup.version}</span>
-                    <span className="backups-cell mono">{missing ? 'Missing' : formatBytes(backup.size)}</span>
-                    <div className="backups-actions">
-                      {!missing && <button className="btn btn-sm btn-secondary" disabled={!server || server.status !== 'stopped'} onClick={() => setRestoreId(backup.id)}>Restore</button>}
-                      <button className="btn btn-sm btn-ghost" onClick={() => setDeleteId(backup.id)}>{missing ? 'Remove record' : 'Delete'}</button>
-                    </div>
-                  </div>;
-                })}
-              </div>
-            )}
-          </>
+          <div className="backups-table" role="table">
+            <div className="backups-table-head" role="row"><span>Created</span><span>Server</span><span>Type</span><span>Version</span><span>Size</span><span /></div>
+            {visible.map((backup) => {
+              const server = store.servers.find((item) => item.id === backup.serverId);
+              const missing = Boolean(backup.failed || backup.errorMessage);
+              return <div key={backup.id} role="row" className={`backups-table-row ${missing ? 'is-failed' : ''}`}>
+                <div className="backups-when">
+                  <span className="backups-date">{formatDateTime(backup.createdAt)}</span>
+                  <span className="backups-detail">{backup.notes ? backup.notes : formatRelative(backup.createdAt)}</span>
+                </div>
+                <span className="backups-cell backups-server">{server && <ServerIcon server={server} size={18} />}<span>{backup.serverName}</span></span>
+                <span className="backups-cell"><span className={`backup-type type-${backup.type}`}>{typeLabels[backup.type]}</span></span>
+                <span className="backups-cell mono">{backup.version}</span>
+                <span className="backups-cell mono">{missing ? 'Missing' : formatBytes(backup.size)}</span>
+                <div className="backups-actions">
+                  {!missing && <button className="btn btn-sm btn-secondary" disabled={!server || server.status !== 'stopped'} title={server && server.status !== 'stopped' ? 'Stop the server to restore' : undefined} onClick={() => setRestoreId(backup.id)}>Restore</button>}
+                  <button className="btn btn-sm btn-ghost" onClick={() => setDeleteId(backup.id)}>{missing ? 'Remove record' : 'Delete'}</button>
+                </div>
+              </div>;
+            })}
+          </div>
         )}
       </div>
       <ConfirmDialog open={Boolean(restore)} title={`Restore ${restore?.serverName ?? 'backup'}?`} description="The current managed server data will be replaced. Nooki creates a safety backup first." confirmLabel="Restore backup" tone="danger" onCancel={() => setRestoreId(null)} onConfirm={() => { if (restore) store.startRestore(restore.id); setRestoreId(null); }} />

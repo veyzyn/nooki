@@ -10,7 +10,7 @@
       html,
       body {
         margin: 0;
-        background: #09090b;
+        background: #0b0b0d;
       }
 
       #nooki-startup {
@@ -19,11 +19,12 @@
         z-index: 2147483647;
         display: grid;
         place-items: center;
-        background: #09090b;
-        color: #fafafa;
-        font-family: "Manrope Variable", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+        background: #0b0b0d;
+        color: #ededef;
+        font-family: "Geist Variable", "Segoe UI Variable Text", "Segoe UI", sans-serif;
         opacity: 1;
-        transition: opacity 160ms ease-out;
+        /* Hand-off to the app: a quick fade on the strong ease-out curve. */
+        transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
       }
 
       #nooki-startup.is-ready {
@@ -35,35 +36,34 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 14px;
+        gap: 10px;
         transform: translateY(-8px);
       }
 
       .nooki-startup-logo {
-        width: 58px;
-        height: 58px;
-        filter: drop-shadow(0 8px 18px rgb(0 0 0 / 24%));
+        width: 44px;
+        height: 44px;
       }
 
       .nooki-startup-name {
         margin-top: 1px;
-        font-size: 18px;
-        font-weight: 680;
+        font-size: 16px;
+        font-weight: 600;
         letter-spacing: -0.02em;
       }
 
       .nooki-startup-status {
-        color: #a1a1aa;
-        font-size: 11px;
-        font-weight: 520;
+        color: #9d9da6;
+        font-size: 12px;
+        font-weight: 400;
       }
 
       .nooki-startup-spinner {
-        width: 20px;
-        height: 20px;
-        margin-top: 2px;
-        color: #5fb87f;
-        animation: nooki-startup-spin 800ms linear infinite;
+        width: 16px;
+        height: 16px;
+        margin-top: 6px;
+        color: #ededef;
+        animation: nooki-startup-spin 700ms linear infinite;
       }
 
       @keyframes nooki-startup-spin {
@@ -89,7 +89,7 @@
         <div class="nooki-startup-name">Nooki</div>
         <div class="nooki-startup-status">Loading your servers</div>
         <svg class="nooki-startup-spinner" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="9" stroke="#27272a" stroke-width="2" />
+          <circle cx="12" cy="12" r="9" stroke="#26262b" stroke-width="2" />
           <path d="M12 3a9 9 0 0 1 9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
         </svg>
       </div>

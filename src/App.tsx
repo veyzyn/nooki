@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { StoreProvider, useStore } from './state/store';
 import Sidebar from './components/Sidebar';
 import Dashboard from './views/Dashboard';
@@ -7,8 +7,11 @@ import BackupsView from './views/BackupsView';
 import QuickServerView from './views/SharingView';
 import SettingsView from './views/SettingsView';
 import ServerDetail from './views/ServerDetail';
-import Titlebar from './components/Titlebar';
-import { IconServer, IconX } from './components/Icons';
+import AddServerWizard from './views/AddServerWizard';
+import TopBar, { TopBarSlotProvider } from './components/TopBar';
+import CommandMenu from './components/CommandMenu';
+import Toaster from './components/Toaster';
+import { IconServer } from './components/Icons';
 import { ConfirmDialog, EmptyState, Spinner } from './components/ui';
 import { TooltipProvider } from './components/ui/tooltip';
 import './styles/global.css';
@@ -18,6 +21,8 @@ import './styles/shadcn-overrides.css';
 function AppContent() {
   const store = useStore();
   const selectedServer = store.servers.find((s) => s.id === store.openServerId);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [commandOpen, setCommandOpen] = useState(false);
 
   useEffect(() => {
     if (!store.ready && !store.initError) return;
@@ -26,55 +31,50 @@ function AppContent() {
     startup.classList.add('is-ready');
     const remove = () => startup.remove();
     startup.addEventListener('transitionend', remove, { once: true });
-    const fallback = window.setTimeout(remove, 250);
+    const fallback = window.setTimeout(remove, 300);
     return () => window.clearTimeout(fallback);
   }, [store.ready, store.initError]);
 
   if (!store.ready) {
-    return <div className="app-shell">
-      <Titlebar />
-      <div className="app" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        {store.initError ? <EmptyState icon={<IconServer size={44} />} title="Nooki could not start" description={store.initError.message} action={<button className="btn btn-primary" onClick={store.retryInitialize}>Try again</button>} /> : <div className="stack-sm" style={{ alignItems: 'center' }}><Spinner size={24} /><span className="text-muted text-sm">Loading your servers</span></div>}
+    return (
+      <div className="app-shell">
+        <div className="app-panel is-solo">
+          <TopBar bare />
+          <div className="app-boot">
+            {store.initError
+              ? <EmptyState icon={<IconServer size={22} />} title="Nooki could not start" description={store.initError.message} action={<button className="btn btn-primary" onClick={store.retryInitialize}>Try again</button>} />
+              : <div className="stack-sm" style={{ alignItems: 'center' }}><Spinner size={18} /><span className="text-muted text-sm">Loading your servers</span></div>}
+          </div>
+        </div>
       </div>
-    </div>;
+    );
   }
+
+  // Keying the view host on location replays the short entrance whenever the
+  // content swaps, so a new page settles in rather than teleporting.
+  const viewKey = store.nav === 'servers' && selectedServer ? `server:${selectedServer.id}` : store.nav;
 
   return (
     <div className="app-shell">
-      <Titlebar />
-      <div className="app">
-        <Sidebar currentView={store.nav} onNavigate={store.setNav} />
-        <main className="main-content">
-          {store.nav === 'dashboard' && <Dashboard />}
-          {store.nav === 'servers' && !selectedServer && <ServersView />}
-          {store.nav === 'servers' && selectedServer && <ServerDetail server={selectedServer} />}
-          {store.nav === 'backups' && <BackupsView />}
-          {store.nav === 'quick-server' && <QuickServerView />}
-          {store.nav === 'settings' && <SettingsView />}
-        </main>
-        {store.toasts.length > 0 && (
-          <div className="toast-container">
-            {store.toasts.map((toast) => (
-              <div key={toast.id} className={`toast toast-${toast.tone}`}>
-                <div className="toast-content">
-                  <div className="toast-title">{toast.title}</div>
-                  {toast.detail && <div className="toast-detail">{toast.detail}</div>}
-                  {toast.progress !== undefined && (
-                    <div className="toast-progress">
-                      <div className="toast-progress-fill" style={{ width: `${toast.progress}%` }} />
-                    </div>
-                  )}
-                </div>
-                <button className="toast-close" onClick={() => store.dismissToast(toast.id)}>
-                  <IconX size={12} />
-                </button>
-              </div>
-            ))}
+      <Sidebar currentView={store.nav} onNavigate={store.setNav} onOpenCommand={() => setCommandOpen(true)} />
+      <TopBarSlotProvider element={slot}>
+        <main className="app-panel">
+          <TopBar onSlot={setSlot} />
+          <div key={viewKey} className="view-host view-enter">
+            {store.nav === 'dashboard' && <Dashboard />}
+            {store.nav === 'servers' && !selectedServer && <ServersView />}
+            {store.nav === 'servers' && selectedServer && <ServerDetail server={selectedServer} />}
+            {store.nav === 'backups' && <BackupsView />}
+            {store.nav === 'quick-server' && <QuickServerView />}
+            {store.nav === 'settings' && <SettingsView />}
           </div>
-        )}
-        <ConfirmDialog open={store.quitDialog === 'quit'} title="Stop servers and quit Nooki?" description="Nooki will save each running world and wait for its server process to exit." confirmLabel="Stop servers and quit" tone="danger" onCancel={() => store.setQuitDialog('closed')} onConfirm={() => { void store.quit(false).then((closed) => { if (!closed) store.setQuitDialog('tray'); }); }} />
-        <ConfirmDialog open={store.quitDialog === 'tray'} title="Some servers did not stop" description="Force quitting terminates the remaining Java processes. Recent unsaved world changes may be lost." confirmLabel="Force quit" tone="danger" onCancel={() => store.setQuitDialog('closed')} onConfirm={() => { void store.quit(true); }} />
-      </div>
+        </main>
+      </TopBarSlotProvider>
+      {store.wizardOpen && <AddServerWizard onClose={() => store.setWizardOpen(false)} />}
+      <CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
+      <Toaster />
+      <ConfirmDialog open={store.quitDialog === 'quit'} title="Stop servers and quit Nooki?" description="Nooki will save each running world and wait for its server process to exit." confirmLabel="Stop servers and quit" tone="danger" onCancel={() => store.setQuitDialog('closed')} onConfirm={() => { void store.quit(false).then((closed) => { if (!closed) store.setQuitDialog('tray'); }); }} />
+      <ConfirmDialog open={store.quitDialog === 'tray'} title="Some servers did not stop" description="Force quitting terminates the remaining Java processes. Recent unsaved world changes may be lost." confirmLabel="Force quit" tone="danger" onCancel={() => store.setQuitDialog('closed')} onConfirm={() => { void store.quit(true); }} />
     </div>
   );
 }

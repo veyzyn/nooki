@@ -82,7 +82,9 @@ svg {
 .select:focus-visible,
 .textarea:focus-visible,
 .console-input:focus-visible,
-.console-search-input:focus-visible {
+.console-search-input:focus-visible,
+.cmdk-input:focus-visible,
+.srv-search input:focus-visible {
   outline: none;
 }
 

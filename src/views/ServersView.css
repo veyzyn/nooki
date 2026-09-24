@@ -1,37 +1,44 @@
-.srv-toolbar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--s-3);
-  margin-top: var(--s-4);
+.srv-search { display: flex; width: min(320px, 40%); height: 30px; align-items: center; gap: 8px; padding: 0 4px 0 9px; border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--muted-foreground); transition: border-color var(--dur) var(--ease-smooth), box-shadow var(--dur) var(--ease-smooth); }
+.srv-search:hover { border-color: var(--border-strong); }
+.srv-search:focus-within { border-color: color-mix(in oklab, var(--foreground) 32%, transparent); box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 7%, transparent); }
+.srv-search input { min-width: 0; flex: 1; height: 100%; border: 0; background: transparent; color: var(--foreground); font-size: 13px; outline: none; }
+.srv-search input::placeholder { color: var(--text-faint); }
+.srv-search .icon-btn { width: 22px; height: 22px; }
+
+
+.srv-list { display: flex; flex-direction: column; padding-bottom: 32px; }
+.srv-group { display: flex; flex-direction: column; }
+.srv-group-head { position: sticky; top: 0; z-index: 1; display: flex; height: 36px; align-items: center; gap: 9px; padding: 0 20px; border-bottom: 1px solid var(--border); background: color-mix(in oklab, var(--background) 92%, var(--foreground) 3%); color: var(--foreground); font-size: 12.5px; font-weight: 500; }
+.srv-group-count { color: var(--muted-foreground); font-weight: 400; font-variant-numeric: tabular-nums; }
+
+/* Rows are scanned and clicked constantly: colour-only hover. */
+.srv-row { display: grid; grid-template-columns: minmax(220px, 1fr) 120px 64px 80px 64px 96px minmax(180px, auto); min-height: 56px; align-items: center; column-gap: 16px; padding: 0 12px 0 20px; border-bottom: 1px solid var(--border); transition: background-color 120ms var(--ease-smooth); }
+.srv-row:hover { background: color-mix(in oklab, var(--foreground) 2.5%, transparent); }
+.srv-row:focus-visible { outline: none; box-shadow: inset 2px 0 0 var(--foreground); background: color-mix(in oklab, var(--foreground) 3%, transparent); }
+.srv-cell { min-width: 0; }
+.srv-name-cell { display: flex; align-items: center; gap: 12px; }
+.srv-name-text { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+.srv-name { overflow: hidden; color: var(--foreground); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.srv-sub { overflow: hidden; color: var(--muted-foreground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.srv-sub-danger { color: var(--destructive); }
+.srv-sub-warn { color: var(--st-warning); }
+.srv-spark { height: 22px; opacity: .9; }
+.srv-metric { display: flex; flex-direction: column; gap: 1px; }
+.srv-metric-label { color: var(--text-faint); font-size: 11px; }
+.srv-metric-value { overflow: hidden; color: var(--foreground); font-size: 12.5px; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.srv-actions { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.srv-busy { display: inline-flex; align-items: center; gap: 6px; margin-right: 6px; color: var(--muted-foreground); font-size: 12px; }
+
+@media (max-width: 1240px) {
+  .srv-row { grid-template-columns: minmax(200px, 1fr) 64px 80px 64px minmax(150px, auto); }
+  .srv-spark, .srv-metric-wide { display: none; }
 }
 
-.srv-toolbar .console-search {
-  flex: 1 1 340px;
-  max-width: 440px;
-}
-
-.srv-toolbar > .segmented {
-  margin-left: auto;
-}
-
-.server-row.needs-attention {
-  border-color: rgba(217, 106, 98, 0.25);
-  background: linear-gradient(var(--st-crashed-bg), var(--st-crashed-bg)), var(--bg-surface);
-}
-
-.alert-count {
-  font-size: var(--fs-xs);
-  padding: 2px var(--s-2);
-  border-radius: var(--r-pill);
-  background: var(--st-warning-bg);
-  color: var(--st-warning);
-  font-weight: 500;
-}
-
-.sub-danger {
-  color: var(--st-crashed);
-  font-weight: 500;
+@media (max-width: 1020px) {
+  .srv-row { grid-template-columns: minmax(180px, 1fr) 72px minmax(140px, auto); }
+  .srv-metric:not(.srv-metric-wide):nth-of-type(n + 4) { display: none; }
+  .srv-row > .srv-metric:nth-child(4) { display: none; }
+  .srv-row > .srv-metric:nth-child(5) { display: none; }
 }
 
 .recycle-confirm {

@@ -1,0 +1,11 @@
+.timeline { position: relative; display: flex; flex-direction: column; }
+.timeline::before { content: ""; position: absolute; top: 12px; bottom: 12px; left: 11px; width: 1px; background: var(--border); }
+.timeline-item { position: relative; display: flex; gap: 12px; padding: 6px 0 12px; }
+.timeline-icon { position: relative; display: grid; width: 23px; height: 23px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--background); color: var(--muted-foreground); }
+.kind-crash .timeline-icon { border-color: color-mix(in oklab, var(--destructive) 45%, transparent); color: var(--destructive); }
+.kind-start .timeline-icon { color: var(--st-running); }
+.timeline-body { display: flex; min-width: 0; flex-direction: column; gap: 2px; padding-top: 3px; }
+.timeline-msg { color: var(--foreground); font-size: 12.5px; line-height: 1.35; }
+.timeline-meta { display: flex; min-width: 0; gap: 6px; color: var(--muted-foreground); font-size: 11.5px; }
+.timeline-server { overflow: hidden; max-width: 150px; text-overflow: ellipsis; white-space: nowrap; }
+.timeline-server::after { content: "·"; margin-left: 6px; color: var(--text-faint); }

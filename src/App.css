@@ -1,18 +1,7 @@
-.app-shell { display: flex; width: 100vw; height: 100vh; flex-direction: column; overflow: hidden; background: var(--background); }
-.app { display: flex; min-height: 0; flex: 1; overflow: hidden; background: var(--background); }
-.main-content { display: flex; min-width: 0; flex: 1; flex-direction: column; overflow: hidden; background: var(--background); }
-
-.toast-container { position: fixed; right: 20px; bottom: 20px; z-index: 1000; display: flex; width: min(360px, calc(100vw - 40px)); flex-direction: column; gap: 8px; pointer-events: none; }
-.toast { --toast-tone: var(--st-info); position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px; overflow: hidden; border: 1px solid color-mix(in oklab, var(--toast-tone) 24%, var(--border)); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--toast-tone) 4%, var(--popover)); box-shadow: var(--sh-md); color: var(--popover-foreground); pointer-events: auto; backdrop-filter: blur(16px); animation: fadeInUp 160ms var(--ease-out); }
-.toast-success { --toast-tone: var(--st-running); }
-.toast-error { --toast-tone: var(--destructive); }
-.toast-warning { --toast-tone: var(--st-warning); }
-.toast-progress { --toast-tone: var(--st-updating); }
-.toast-content { min-width: 0; flex: 1; }
-.toast-title { display: flex; align-items: center; gap: 8px; color: var(--foreground); font-size: 12px; font-weight: 650; }
-.toast-title::before { content: ""; width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--toast-tone); box-shadow: 0 0 0 3px color-mix(in oklab, var(--toast-tone) 12%, transparent); }
-.toast-detail { margin-top: 3px; color: var(--muted-foreground); font-size: 11px; line-height: 1.45; }
-.toast-progress { height: 3px; margin-top: 10px; overflow: hidden; border-radius: 999px; background: var(--muted); }
-.toast-progress-fill { height: 100%; border-radius: inherit; background: var(--primary); transition: width 220ms var(--ease-out); }
-.toast-close { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: var(--radius-md); color: var(--muted-foreground); }
-.toast-close:hover { background: var(--accent); color: var(--accent-foreground); }
+/* Shell: the sidebar and the outer frame share the chrome colour; content sits
+   in an inset, rounded panel that owns its own top bar and window controls. */
+.app-shell { display: flex; width: 100vw; height: 100vh; overflow: hidden; background: var(--chrome); }
+.app-panel { display: flex; min-width: 0; flex: 1; flex-direction: column; margin: var(--panel-inset) var(--panel-inset) var(--panel-inset) 0; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--background); box-shadow: 0 1px 2px color-mix(in oklab, black 30%, transparent); }
+.app-panel.is-solo { margin-left: var(--panel-inset); }
+.app-boot { display: flex; min-height: 0; flex: 1; align-items: center; justify-content: center; }
+.view-host { display: flex; min-height: 0; flex: 1; flex-direction: column; overflow: hidden; }

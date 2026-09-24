@@ -1,22 +1,45 @@
-.sidebar { width: var(--sidebar-w); height: 100%; display: flex; flex: 0 0 auto; flex-direction: column; border-right: 1px solid var(--sidebar-border); background: var(--sidebar); color: var(--sidebar-foreground); }
-.sidebar-nav { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 3px; padding: 14px 12px; overflow-y: auto; }
-.nav-item { position: relative; display: flex; width: 100%; height: 36px; align-items: center; gap: 10px; padding: 0 11px; border-radius: var(--radius-lg); color: var(--muted-foreground); font-size: 12px; font-weight: 600; text-align: left; transition: background-color var(--dur), color var(--dur); }
-.nav-item:hover { background: var(--sidebar-accent); color: var(--sidebar-accent-foreground); }
-.nav-item.active { background: color-mix(in oklab, var(--sidebar-primary) 13%, transparent); color: var(--sidebar-primary); }
-.nav-item.active::before { display: none; }
-.nav-icon { display: grid; flex: 0 0 auto; place-items: center; }
-.nav-item.active .nav-icon { color: var(--sidebar-primary); }
-.nav-label { flex: 1; }
-.nav-badge { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: color-mix(in oklab, var(--muted) 74%, transparent); color: var(--muted-foreground); font-size: 10px; font-variant-numeric: tabular-nums; text-align: center; }
-.nav-item.active .nav-badge { background: color-mix(in oklab, var(--sidebar-primary) 15%, transparent); color: var(--sidebar-primary); }
-.sidebar-foot { padding: 12px; border-top: 1px solid var(--sidebar-border); }
-.host-card { display: flex; flex-direction: column; gap: 12px; padding: 12px; border: 1px solid var(--sidebar-border); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--sidebar-accent) 48%, transparent); }
-.host-top { display: flex; align-items: center; justify-content: space-between; }
-.host-title { color: var(--muted-foreground); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
-.host-pill { padding: 2px 7px; border-radius: 999px; background: var(--muted); color: var(--muted-foreground); font-size: 10px; font-weight: 600; }
-.host-pill.is-active { background: var(--st-running-bg); color: var(--st-running); }
-.host-meter { display: flex; flex-direction: column; gap: 6px; }
-.host-meter-head { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: 10px; font-variant-numeric: tabular-nums; }
-.host-bar { height: 3px; overflow: hidden; border-radius: 999px; background: var(--muted); }
-.host-bar-fill { height: 100%; border-radius: inherit; background: var(--primary); transition: width 220ms var(--ease-out); }
-.host-bar-fill.is-warm { background: var(--st-warning); }
+.sidebar { display: flex; width: var(--sidebar-w); height: 100%; flex: 0 0 auto; flex-direction: column; background: var(--sidebar); color: var(--sidebar-foreground); }
+
+.sidebar-head { display: flex; height: var(--topbar-h); flex: 0 0 auto; align-items: center; justify-content: space-between; margin-top: var(--panel-inset); padding: 0 10px 0 14px; }
+.sidebar-brand { display: flex; align-items: center; gap: 9px; color: var(--foreground); font-size: 14px; font-weight: 600; letter-spacing: -0.01em; pointer-events: none; }
+.sidebar-icon-btn { display: grid; width: 28px; height: 28px; place-items: center; border-radius: var(--radius-md); color: var(--muted-foreground); transition: background-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth), transform 160ms var(--ease-out); }
+.sidebar-icon-btn:hover { background: var(--bg-hover); color: var(--foreground); }
+.sidebar-icon-btn:active { transform: scale(0.94); }
+
+.sidebar-search { display: flex; height: 30px; align-items: center; gap: 8px; margin: 6px 10px 10px; padding: 0 6px 0 9px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: color-mix(in oklab, var(--foreground) 2.5%, transparent); color: var(--muted-foreground); font-size: 12.5px; text-align: left; transition: border-color var(--dur) var(--ease-smooth), background-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth); }
+.sidebar-search > span:first-of-type { flex: 1; }
+.sidebar-search:hover { border-color: var(--border-strong); color: var(--foreground); }
+.sidebar-search-keys { display: flex; gap: 3px; }
+.sidebar-search-keys .kbd { height: 17px; min-width: 17px; font-size: 10px; }
+
+.sidebar-nav { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 1px; padding: 0 10px 10px; overflow-y: auto; scrollbar-width: none; }
+
+/* Navigation is used tens of times a day: hover and active are instant-feeling
+   colour changes, no movement. */
+.nav-item { position: relative; display: flex; width: 100%; height: 30px; flex: 0 0 auto; align-items: center; gap: 9px; padding: 0 8px; border-radius: var(--radius-lg); color: var(--muted-foreground); font-size: 13px; font-weight: 500; text-align: left; transition: background-color 120ms var(--ease-smooth), color 120ms var(--ease-smooth); }
+.nav-item:hover { background: var(--sidebar-accent); color: var(--foreground); }
+.nav-item.active { background: color-mix(in oklab, var(--foreground) 8%, transparent); color: var(--foreground); }
+.nav-icon { display: grid; width: 18px; flex: 0 0 auto; place-items: center; }
+.nav-label { overflow: hidden; min-width: 0; flex: 1; text-overflow: ellipsis; white-space: nowrap; }
+.nav-meta { color: var(--muted-foreground); font-size: 11px; font-variant-numeric: tabular-nums; }
+
+.sidebar-section { display: flex; flex-direction: column; gap: 1px; margin-top: 18px; }
+.sidebar-section-head { display: flex; height: 24px; align-items: center; justify-content: space-between; padding: 0 8px; color: var(--text-faint); font-size: 11.5px; font-weight: 500; }
+.sidebar-section-count { font-variant-numeric: tabular-nums; }
+
+.nav-server-icon { position: relative; display: grid; width: 18px; flex: 0 0 auto; place-items: center; }
+.nav-server-icon .server-avatar { border-radius: 5px; border-color: transparent; }
+.nav-server-icon .status-dot { position: absolute; right: -3px; bottom: -3px; width: 8px; height: 8px; box-shadow: 0 0 0 2px var(--sidebar); }
+.nav-server:hover .nav-server-icon .status-dot { box-shadow: 0 0 0 2px color-mix(in oklab, var(--sidebar) 94%, white); }
+
+.sidebar-foot { display: flex; flex: 0 0 auto; flex-direction: column; gap: 10px; padding: 8px 10px 14px; }
+
+.host { display: flex; flex-direction: column; gap: 9px; padding: 10px 10px 11px; border: 1px solid var(--border); border-radius: var(--radius-xl); }
+.host-meter { display: grid; grid-template-columns: auto 1fr; row-gap: 5px; align-items: baseline; }
+.host-label { color: var(--muted-foreground); font-size: 11.5px; }
+.host-value { color: var(--foreground); font-size: 11.5px; font-variant-numeric: tabular-nums; text-align: right; }
+.host-bar { grid-column: 1 / -1; height: 3px; overflow: hidden; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 8%, transparent); }
+/* Live readings glide to their new value instead of jumping. transform only,
+   so the bar never triggers layout. */
+.host-bar-fill { display: block; width: 100%; height: 100%; border-radius: inherit; background: color-mix(in oklab, var(--foreground) 72%, transparent); transform: scaleX(var(--pct)); transform-origin: left center; transition: transform 300ms var(--ease-out), background-color var(--dur) var(--ease-smooth); }
+.host-meter.is-hot .host-bar-fill { background: var(--st-warning); }

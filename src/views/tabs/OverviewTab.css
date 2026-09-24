@@ -1,284 +1,62 @@
 .overview-tab {
-  gap: var(--s-4);
+  gap: 28px;
 }
 
-.ov-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(320px, .75fr);
-  gap: var(--s-4);
-}
+/* Scrolling column: sections keep their natural height instead of shrinking. */
+.overview-tab > * { flex-shrink: 0; }
 
-.ov-facts {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--s-3) var(--s-5);
-  padding: var(--s-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  align-content: start;
-}
+/* Live usage strip: one surface, divided cells, a hairline meter under each. */
+.ov-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--card); }
+.ov-stat { display: flex; min-width: 0; flex-direction: column; gap: 8px; padding: 16px 18px; }
+.ov-stat + .ov-stat { border-left: 1px solid var(--border); }
+.ov-stat-label { color: var(--muted-foreground); font-size: 12px; }
+.ov-stat-value { display: flex; min-width: 0; align-items: baseline; gap: 6px; overflow: hidden; color: var(--foreground); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.03em; line-height: 1.15; white-space: nowrap; }
+.ov-stat-suffix { color: var(--muted-foreground); font-size: 12.5px; font-weight: 400; letter-spacing: 0; }
+.ov-stat-bar { display: block; height: 3px; overflow: hidden; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 8%, transparent); }
+/* Readings glide to their next value (transform only, never layout). */
+.ov-stat-bar > span { display: block; width: 100%; height: 100%; border-radius: inherit; background: color-mix(in oklab, var(--foreground) 70%, transparent); transform-origin: left center; transition: transform 300ms var(--ease-out), background-color var(--dur) var(--ease-smooth); }
+.ov-stat-bar.tone-warning > span { background: var(--st-warning); }
+.ov-stat-bar.tone-danger > span { background: var(--destructive); }
 
-.fact {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.fact-wide {
-  grid-column: span 2;
-}
-
-.fact-label {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.fact-value {
-  min-width: 0;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
-}
-
-.ov-resources {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: var(--s-3);
-  padding: var(--s-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-}
-
-.ov-resources .progress,
-.ov-resources .progress-fill {
-  box-shadow: none;
-}
-
-.ov-resources .progress-fill::after {
-  display: none;
-}
-
-.ov-resources .progress-fill.tone-accent {
-  background: var(--accent);
-}
-
-.ov-resources .progress-fill.tone-warning {
-  background: var(--st-warning);
-}
-
-.ov-resources .progress-fill.tone-danger {
-  background: var(--st-crashed);
-}
-
-.ov-resources .progress-fill.tone-info {
-  background: var(--st-updating);
-}
-
-.ov-chart {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-3);
-  min-width: 0;
-  padding: var(--s-4);
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-}
-
-.ov-chart-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  font-weight: 500;
-}
-
-.ov-chart-values {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-}
-
-.ov-chart-values > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-muted);
-  font-size: var(--fs-xs);
-}
-
+.ov-chart { display: flex; min-width: 0; flex-direction: column; gap: 16px; padding: 18px 18px 12px; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--card); }
+.ov-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ov-chart-values { display: flex; align-items: center; gap: 16px; }
+.ov-chart-values > span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-foreground); font-size: 12px; }
 .ov-chart-values i,
-.ov-chart-tooltip-row i {
-  width: 7px;
-  height: 7px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-}
-
+.ov-chart-tooltip-row i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; }
 .ov-chart-values i.is-cpu { background: var(--st-running); }
 .ov-chart-values i.is-memory { background: var(--st-updating); }
-.ov-chart-values strong { color: var(--text); font-weight: 650; }
+.ov-chart-values strong { color: var(--foreground); font-weight: 500; font-variant-numeric: tabular-nums; }
+.ov-load-chart { width: 100%; height: 180px; aspect-ratio: auto; }
+.ov-load-chart .recharts-cartesian-grid line { stroke: var(--border); }
+.ov-load-chart .recharts-text { fill: var(--text-faint); font-size: 11px; }
+.ov-chart-tooltip-row { display: grid; min-width: 142px; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; }
+.ov-chart-tooltip-row span { color: var(--muted-foreground); }
+.ov-chart-tooltip-row strong { color: var(--foreground); font-family: var(--font-mono); font-weight: 500; }
 
-.ov-load-chart {
-  width: 100%;
-  height: 166px;
-  aspect-ratio: auto;
-}
+.ov-lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
 
-.ov-chart-tooltip-row {
-  display: grid;
-  min-width: 142px;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--s-2);
-}
+.ov-panel { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--card); }
+.ov-panel .empty { min-height: 180px; }
+.ov-players { display: flex; flex-direction: column; }
+.ov-player { display: flex; min-height: 46px; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.ov-player:last-child { border-bottom: 0; }
+.ov-player-name { overflow: hidden; min-width: 0; color: var(--foreground); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.ov-op { padding: 1px 6px; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--muted-foreground); font-size: 10.5px; font-weight: 500; }
+.ov-player-meta { margin-left: auto; color: var(--muted-foreground); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.ov-chart-tooltip-row span { color: var(--text-muted); }
-.ov-chart-tooltip-row strong { color: var(--text); font-family: var(--font-mono); font-weight: 650; }
+/* Key/value table, Vercel deployment-details style. */
+.ov-details { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--card); }
+.fact { display: grid; min-height: 40px; grid-template-columns: 130px minmax(0, 1fr); align-items: center; gap: 12px; padding: 0 14px; border-bottom: 1px solid var(--border); }
+.fact:last-child { border-bottom: 0; }
+.fact-label { color: var(--muted-foreground); font-size: 12.5px; }
+.fact-value { overflow: hidden; color: var(--foreground); font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; user-select: text; }
 
-.ov-load-section {
-  gap: var(--s-2);
-}
+.overview-tab .timeline { max-width: 560px; }
 
-.ov-lower {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--s-4);
-}
-
-.ov-lower > .tab-section {
-  min-width: 0;
-  gap: var(--s-2);
-}
-
-.ov-panel {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  height: 164px;
-  min-height: 0;
-  overflow: auto;
-}
-
-.ov-panel > .empty { height: 100%; min-height: 0; padding: var(--s-4); }
-.ov-panel > .empty .empty-icon { margin-bottom: var(--s-2); }
-
-.ov-players {
-  display: flex;
-  flex-direction: column;
-}
-
-.ov-player {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.ov-player:last-child {
-  border-bottom: none;
-}
-
-.ov-player-body {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ov-player-name {
-  font-size: var(--fs-sm);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-.op-tag {
-  font-size: var(--fs-xs);
-  padding: 1px var(--s-2);
-  border-radius: var(--r-pill);
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.ov-player-meta {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-}
-
-.ov-player-ping {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.ov-events {
-  display: flex;
-  flex-direction: column;
-}
-
-.ov-event {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.ov-event:last-child {
-  border-bottom: none;
-}
-
-.ov-event-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-faint);
-  flex-shrink: 0;
-}
-
-.dot-backup,
-.dot-restore {
-  background: var(--st-info);
-}
-
-.dot-crash {
-  background: var(--st-crashed);
-}
-
-.dot-update {
-  background: var(--st-updating);
-}
-
-.dot-start,
-.dot-restart {
-  background: var(--st-running);
-}
-
-.ov-event-msg {
-  flex: 1;
-  font-size: var(--fs-sm);
-}
-
-.ov-event-time {
-  font-size: var(--fs-xs);
-  color: var(--text-faint);
-}
-
-@media (max-width: 1050px) {
-  .ov-grid { grid-template-columns: 1fr; }
-  .ov-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) {
+  .ov-lower { grid-template-columns: minmax(0, 1fr); }
+  .ov-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ov-stat:nth-child(3) { border-left: 0; }
+  .ov-stat:nth-child(n + 3) { border-top: 1px solid var(--border); }
 }

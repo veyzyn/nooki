@@ -3,35 +3,36 @@
   color-scheme: dark;
 
   --bg-app: var(--background);
+  --bg-chrome: var(--chrome);
   --bg-sidebar: var(--sidebar);
   --bg-surface: var(--card);
   --bg-surface-2: var(--secondary);
-  --bg-surface-3: color-mix(in oklab, var(--secondary) 82%, var(--foreground) 4%);
-  --bg-inset: color-mix(in oklab, var(--background) 88%, black);
-  --bg-hover: color-mix(in oklab, var(--foreground) 6%, transparent);
-  --bg-active: color-mix(in oklab, var(--foreground) 10%, transparent);
+  --bg-surface-3: color-mix(in oklab, var(--card) 90%, var(--foreground) 6%);
+  --bg-inset: color-mix(in oklab, var(--background) 80%, black);
+  --bg-hover: color-mix(in oklab, var(--foreground) 5%, transparent);
+  --bg-active: color-mix(in oklab, var(--foreground) 8%, transparent);
   --bg-scrim: color-mix(in oklab, black 58%, transparent);
   --bg-glass: color-mix(in oklab, var(--popover) 88%, transparent);
 
-  --border-strong: color-mix(in oklab, var(--foreground) 18%, transparent);
-  --border-subtle: color-mix(in oklab, var(--foreground) 6%, transparent);
+  --border-strong: color-mix(in oklab, var(--foreground) 14%, transparent);
+  --border-subtle: color-mix(in oklab, var(--foreground) 5%, transparent);
 
   --text: var(--foreground);
   --text-secondary: color-mix(in oklab, var(--foreground) 76%, transparent);
   --text-muted: var(--muted-foreground);
-  --text-faint: color-mix(in oklab, var(--muted-foreground) 70%, transparent);
+  --text-faint: color-mix(in oklab, var(--muted-foreground) 62%, transparent);
   --text-on-accent: var(--primary-foreground);
 
-  --accent-hover: color-mix(in oklab, var(--primary) 88%, white);
+  --accent-hover: color-mix(in oklab, var(--primary) 86%, transparent);
   --accent-press: color-mix(in oklab, var(--primary) 82%, black);
-  --accent-soft: color-mix(in oklab, var(--primary) 13%, transparent);
-  --accent-soft-strong: color-mix(in oklab, var(--primary) 20%, transparent);
-  --accent-ring: color-mix(in oklab, var(--primary) 34%, transparent);
+  --accent-soft: color-mix(in oklab, var(--primary) 8%, transparent);
+  --accent-soft-strong: color-mix(in oklab, var(--primary) 12%, transparent);
+  --accent-ring: color-mix(in oklab, var(--primary) 28%, transparent);
   --accent-glow: transparent;
   --accent-glow-strong: transparent;
 
-  --st-running: oklch(0.72 0.15 159);
-  --st-running-bg: color-mix(in oklab, var(--st-running) 12%, transparent);
+  --st-running: var(--brand);
+  --st-running-bg: color-mix(in oklab, var(--st-running) 10%, transparent);
   --st-stopped: var(--muted-foreground);
   --st-stopped-bg: color-mix(in oklab, var(--muted-foreground) 10%, transparent);
   --st-warning: oklch(0.76 0.14 77);
@@ -65,34 +66,42 @@
   --s-8: 40px;
   --s-9: 56px;
 
-  --font: "Manrope Variable", "Segoe UI Variable Text", "Segoe UI", sans-serif;
-  --font-mono: "Cascadia Code", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  --font: "Geist Variable", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   --fs-xs: 11px;
   --fs-sm: 12px;
   --fs-base: 13px;
   --fs-md: 14px;
   --fs-lg: 16px;
-  --fs-xl: 19px;
-  --fs-2xl: 24px;
-  --fs-3xl: 30px;
+  --fs-xl: 18px;
+  --fs-2xl: 22px;
+  --fs-3xl: 28px;
 
   --sh-sm: 0 1px 2px color-mix(in oklab, black 22%, transparent);
-  --sh-md: 0 8px 24px color-mix(in oklab, black 24%, transparent);
-  --sh-lg: 0 18px 48px color-mix(in oklab, black 38%, transparent);
-  --sh-xl: 0 24px 64px color-mix(in oklab, black 48%, transparent);
+  --sh-md: 0 0 0 1px var(--border), 0 8px 24px color-mix(in oklab, black 32%, transparent);
+  --sh-lg: 0 0 0 1px var(--border), 0 16px 40px color-mix(in oklab, black 44%, transparent);
+  --sh-xl: 0 0 0 1px var(--border), 0 24px 64px color-mix(in oklab, black 55%, transparent);
   --sh-inset: none;
   --sh-glow: none;
   --sh-glow-strong: none;
 
-  --ease: cubic-bezier(0.2, 0, 0, 1);
-  --ease-out: cubic-bezier(0, 0, 0.2, 1);
-  --ease-spring: cubic-bezier(0.2, 0, 0, 1);
-  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --dur-fast: 90ms;
-  --dur: 140ms;
-  --dur-slow: 180ms;
-  --dur-slower: 220ms;
+  /* Motion. Strong curves: built-in CSS easings are too weak for UI.
+     --ease-out      entering / exiting / feedback (the default)
+     --ease-in-out   something already on screen moving to a new place
+     --ease-smooth   plain colour and hover changes
+     ease-in is never used for UI: it delays the moment the user is watching. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-smooth: ease;
+  --ease: var(--ease-out);
+  --ease-spring: var(--ease-out);
+  --dur-fast: 100ms;
+  --dur: 150ms;
+  --dur-slow: 200ms;
+  --dur-slower: 250ms;
 
-  --sidebar-w: 224px;
-  --topbar-h: 38px;
+  --sidebar-w: 236px;
+  --topbar-h: 44px;
+  --panel-inset: 8px;
 }

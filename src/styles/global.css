@@ -1,6 +1,7 @@
 @import "./tokens.css";
 @import "./reset.css";
 @import "./motion.css";
+@import "./layout.css";
 
 #root {
   width: 100vw;
@@ -9,36 +10,50 @@
   overflow: hidden;
 }
 
-/* Existing feature views use these compatibility classes. Their visual rules
-   intentionally mirror the shadcn preset so native and migrated controls match. */
+/* ------------------------------- Buttons -------------------------------- */
+
 .btn {
   position: relative;
   display: inline-flex;
   height: 32px;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   padding: 0 12px;
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
   color: var(--foreground);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
   line-height: 1;
   white-space: nowrap;
   user-select: none;
-  transition: background-color var(--dur) var(--ease-smooth), border-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth), opacity var(--dur) var(--ease-smooth);
+  transition:
+    background-color var(--dur) var(--ease-smooth),
+    border-color var(--dur) var(--ease-smooth),
+    color var(--dur) var(--ease-smooth),
+    box-shadow var(--dur) var(--ease-smooth),
+    opacity var(--dur) var(--ease-smooth),
+    transform 160ms var(--ease-out);
+}
+
+/* Press feedback: the interface heard the click. Children scale with it,
+   which is what makes it read as a physical press. */
+.btn:active:not(:disabled),
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn:focus-visible,
 .icon-btn:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent);
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px color-mix(in oklab, var(--ring) 70%, transparent);
 }
 
 .btn:disabled {
   cursor: not-allowed;
-  opacity: .45;
+  opacity: .4;
 }
 
 .btn > svg { flex: 0 0 auto; }
@@ -48,77 +63,154 @@
   color: var(--primary-foreground);
 }
 
-.btn-primary:hover:not(:disabled) { background: color-mix(in oklab, var(--primary) 88%, white); }
-.btn-primary:active:not(:disabled) { background: color-mix(in oklab, var(--primary) 86%, black); }
+.btn-primary:hover:not(:disabled) { background: color-mix(in oklab, var(--primary) 86%, var(--background)); }
 
 .btn-secondary {
-  border-color: var(--border);
-  background: var(--secondary);
-  color: var(--secondary-foreground);
+  border-color: var(--border-strong);
+  background: color-mix(in oklab, var(--foreground) 2.5%, transparent);
+  color: var(--foreground);
 }
 
-.btn-secondary:hover:not(:disabled) { background: color-mix(in oklab, var(--secondary) 88%, var(--foreground) 5%); }
+.btn-secondary:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--foreground) 20%, transparent);
+  background: color-mix(in oklab, var(--foreground) 6%, transparent);
+}
 
 .btn-ghost { background: transparent; color: var(--muted-foreground); }
-.btn-ghost:hover:not(:disabled) { background: var(--accent); color: var(--accent-foreground); }
-.btn-danger { background: var(--destructive); color: white; }
+.btn-ghost:hover:not(:disabled) { background: var(--bg-hover); color: var(--foreground); }
+.btn-danger { background: var(--destructive); color: oklch(0.99 0 0); }
 .btn-danger:hover:not(:disabled) { background: color-mix(in oklab, var(--destructive) 88%, white); }
-.btn-sm { height: 28px; padding: 0 10px; font-size: 11px; border-radius: var(--radius-md); }
+.btn-sm { height: 28px; padding: 0 10px; font-size: 12px; border-radius: var(--radius-md); }
 .btn-icon { width: 32px; padding: 0; }
 .btn-icon.btn-sm { width: 28px; }
+
+/* Keyboard hint inside buttons and menus. */
+.kbd {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--foreground) 4%, transparent);
+  color: var(--muted-foreground);
+  font-family: var(--font);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* -------------------------------- Inputs -------------------------------- */
 
 .input,
 .select,
 .textarea {
   display: block;
   width: 100%;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  background: color-mix(in oklab, var(--input) 50%, transparent);
+  background: color-mix(in oklab, var(--foreground) 2%, transparent);
   color: var(--foreground);
   font-size: 13px;
-  transition: border-color var(--dur) var(--ease-smooth), box-shadow var(--dur) var(--ease-smooth), background-color var(--dur) var(--ease-smooth);
+  transition:
+    border-color var(--dur) var(--ease-smooth),
+    box-shadow var(--dur) var(--ease-smooth),
+    background-color var(--dur) var(--ease-smooth);
 }
 
 .input,
-.select { height: 34px; padding: 0 12px; }
-.textarea { min-height: 88px; padding: 10px 12px; resize: vertical; line-height: 1.55; }
+.select { height: 32px; padding: 0 10px; }
+.textarea { min-height: 88px; padding: 8px 10px; resize: vertical; line-height: 1.55; }
 .input::placeholder,
-.textarea::placeholder { color: var(--muted-foreground); }
-.input:hover,
-.select:hover,
-.textarea:hover { background: color-mix(in oklab, var(--input) 64%, transparent); }
+.textarea::placeholder { color: var(--text-faint); }
+.input:hover:not(:disabled),
+.select:hover:not(:disabled),
+.textarea:hover:not(:disabled) { border-color: color-mix(in oklab, var(--foreground) 20%, transparent); }
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-color: var(--ring);
+  border-color: color-mix(in oklab, var(--foreground) 36%, transparent);
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 8%, transparent);
 }
+.input:disabled,
+.textarea:disabled { opacity: .5; }
+
+/* ----------------------------- Status badge ----------------------------- */
 
 .status-badge {
   display: inline-flex;
+  height: 20px;
   align-items: center;
-  gap: 7px;
-  padding: 3px 8px;
+  gap: 6px;
+  padding: 0 8px 0 7px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--muted);
+  background: transparent;
   color: var(--muted-foreground);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .035em;
-  line-height: 1.35;
-  text-transform: uppercase;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.status-badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.status-running { border-color: color-mix(in oklab, var(--st-running) 24%, transparent); background: var(--st-running-bg); color: var(--st-running); }
-.status-stopped { background: var(--st-stopped-bg); color: var(--st-stopped); }
-.status-warning { border-color: color-mix(in oklab, var(--st-warning) 24%, transparent); background: var(--st-warning-bg); color: var(--st-warning); }
-.status-updating { border-color: color-mix(in oklab, var(--st-updating) 24%, transparent); background: var(--st-updating-bg); color: var(--st-updating); }
-.status-crashed { border-color: color-mix(in oklab, var(--destructive) 24%, transparent); background: var(--st-crashed-bg); color: var(--destructive); }
-.status-info { border-color: color-mix(in oklab, var(--st-info) 24%, transparent); background: var(--st-info-bg); color: var(--st-info); }
+.status-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--badge-dot, currentColor);
+  transition: background-color var(--dur) var(--ease-smooth);
+}
+
+.status-badge .spinner { width: 11px !important; height: 11px !important; }
+.status-badge:has(.spinner)::before { display: none; }
+.status-running { --badge-dot: var(--st-running); color: var(--foreground); }
+.status-stopped { --badge-dot: color-mix(in oklab, var(--muted-foreground) 70%, transparent); }
+.status-warning { --badge-dot: var(--st-warning); color: var(--foreground); }
+.status-updating { --badge-dot: var(--st-updating); color: var(--foreground); }
+.status-crashed { --badge-dot: var(--destructive); border-color: color-mix(in oklab, var(--destructive) 30%, var(--border)); color: var(--destructive); }
+.status-info { --badge-dot: var(--st-info); color: var(--foreground); }
+
+/* Standalone status dot used in lists and the sidebar. Transitional states
+   breathe. In the always-mounted sidebar a dot that becomes "running" emits
+   one soft ring, so the change is noticed without anything looping. */
+.status-dot {
+  position: relative;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--dot, color-mix(in oklab, var(--muted-foreground) 55%, transparent));
+  transition: background-color var(--dur-slow) var(--ease-smooth);
+}
+.status-dot.is-running { --dot: var(--st-running); }
+.status-dot.is-crashed { --dot: var(--destructive); }
+.status-dot.is-updating { --dot: var(--st-updating); }
+.status-dot.is-warning { --dot: var(--st-warning); }
+.status-dot.is-warning,
+.status-dot.is-updating { animation: pulse 1.6s ease-in-out infinite; }
+.sidebar .status-dot.is-running::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--dot);
+  opacity: 0;
+  animation: statusRing 1.2s var(--ease-out) 1 both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-dot.is-warning,
+  .status-dot.is-updating { animation: none; }
+  .sidebar .status-dot.is-running::after { animation: none; }
+}
+
+/* -------------------------------- Surfaces ------------------------------- */
 
 .card {
   padding: 20px;
@@ -133,16 +225,18 @@
 .text-sm { font-size: 12px; }
 .text-md { font-size: 14px; }
 .text-lg { font-size: 16px; }
-.text-xl { font-size: 19px; }
-.text-2xl { font-size: 24px; }
+.text-xl { font-size: 18px; }
+.text-2xl { font-size: 22px; }
 .text-muted { color: var(--muted-foreground); }
 .text-secondary { color: var(--text-secondary); }
 .font-medium { font-weight: 500; }
 .font-semibold { font-weight: 600; }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: .95em; }
 .text-gradient { color: var(--foreground); }
+.stack-sm { display: flex; flex-direction: column; gap: 8px; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 999px; background: color-mix(in oklab, var(--muted-foreground) 35%, transparent); background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--muted-foreground) 52%, transparent); background-clip: padding-box; }
+::-webkit-scrollbar-thumb { border: 3px solid transparent; border-radius: 999px; background: color-mix(in oklab, var(--muted-foreground) 26%, transparent); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--muted-foreground) 44%, transparent); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }

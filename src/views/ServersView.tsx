@@ -2,19 +2,18 @@ import { useMemo, useState } from 'react';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { useStore } from '../state/store';
 import type { Server, ServerStatus } from '../types';
-import { IconPlus, IconSearch, IconServer, IconX, IconDots, IconCopy } from '../components/Icons';
+import { IconPlus, IconSearch, IconServer, IconX, IconDots, IconCopy, IconPlay } from '../components/Icons';
 import ServerIcon from '../components/ServerIcon';
+import { PageActions } from '../components/TopBar';
 import { EmptyState, Field, Menu, Modal, Segmented, Sparkline, Spinner, ConfirmDialog } from '../components/ui';
-import { formatMegabytes, formatUptime, isBusy, softwareLabel, statusLabels, statusTone } from '../format';
-import AddServerWizard from './AddServerWizard';
-import './Dashboard.css';
+import { formatMegabytes, formatUptime, isBusy, softwareLabel, statusLabels } from '../format';
 import './ServersView.css';
 
 type Filter = 'all' | 'running' | 'stopped' | 'issues';
 
 export default function ServersView() {
   const store = useStore();
-  const { servers, wizardOpen, setWizardOpen } = store;
+  const { servers, setWizardOpen } = store;
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [confirmStop, setConfirmStop] = useState<string | null>(null);
@@ -61,84 +60,107 @@ export default function ServersView() {
     }
   };
 
+  const groups = useMemo(() => {
+    const order: { id: string; label: string; dot: string; match: (server: Server) => boolean }[] = [
+      { id: 'attention', label: 'Needs attention', dot: 'is-crashed', match: needsAttention },
+      { id: 'busy', label: 'In progress', dot: 'is-warning', match: (server) => isBusy(server.status) },
+      { id: 'running', label: 'Running', dot: 'is-running', match: (server) => server.status === 'running' },
+      { id: 'stopped', label: 'Stopped', dot: '', match: () => true },
+    ];
+    const remaining = [...visible];
+    return order.map((group) => {
+      const members = remaining.filter(group.match);
+      for (const member of members) remaining.splice(remaining.indexOf(member), 1);
+      return { ...group, members };
+    }).filter((group) => group.members.length > 0);
+  }, [visible]);
+
   return (
     <div className="view">
-      <div className="view-header">
-        <div>
-          <h1 className="view-title">Servers</h1>
-          <p className="view-subtitle">
-            {servers.length} server{servers.length !== 1 ? 's' : ''} on this computer
-          </p>
-        </div>
-        <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
-          <IconPlus size={15} />
+      <PageActions>
+        <button className="btn btn-primary btn-sm" onClick={() => setWizardOpen(true)}>
+          <IconPlus size={14} />
           Add server
         </button>
-      </div>
+      </PageActions>
 
-      <div className="dash-body">
-        {servers.length > 0 && (
-          <div className="srv-toolbar">
-            <div className="console-search">
-              <IconSearch size={14} />
-              <input
-                className="console-search-input"
-                placeholder="Search by name, version, or port"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-              {query && (
-                <button className="icon-btn" onClick={() => setQuery('')} aria-label="Clear search">
-                  <IconX size={12} />
+      {servers.length > 0 && (
+        <div className="page-toolbar">
+          <label className="srv-search">
+            <IconSearch size={14} />
+            <input
+              placeholder="Filter by name, version, or port"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Filter servers"
+            />
+            {query && (
+              <button className="icon-btn" onClick={() => setQuery('')} aria-label="Clear filter">
+                <IconX size={12} />
+              </button>
+            )}
+          </label>
+          <div className="grow" />
+          <Segmented
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: 'all', label: 'All' },
+              { value: 'running', label: 'Running' },
+              { value: 'stopped', label: 'Stopped' },
+              { value: 'issues', label: 'Needs attention' },
+            ]}
+          />
+        </div>
+      )}
+
+      <div className="page">
+        {servers.length === 0 ? (
+          <div className="page-empty">
+            <EmptyState
+              icon={<IconServer size={18} />}
+              title="No servers yet"
+              description="Create a fresh Minecraft server or bring in one you already run from a folder on this computer."
+              action={
+                <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
+                  <IconPlus size={14} />
+                  Add server
                 </button>
-              )}
-            </div>
-            <Segmented
-              value={filter}
-              onChange={setFilter}
-              options={[
-                { value: 'all', label: 'All' },
-                { value: 'running', label: 'Running' },
-                { value: 'stopped', label: 'Stopped' },
-                { value: 'issues', label: 'Needs attention' },
-              ]}
+              }
             />
           </div>
-        )}
-
-        {servers.length === 0 ? (
-          <EmptyState
-            icon={<IconServer size={44} />}
-            title="No servers yet"
-            description="Create a fresh Minecraft server or bring in one you already run from a folder on this computer."
-            action={
-              <button className="btn btn-primary" onClick={() => setWizardOpen(true)}>
-                <IconPlus size={15} />
-                Add server
-              </button>
-            }
-          />
         ) : visible.length === 0 ? (
-          <EmptyState
-            icon={<IconSearch size={40} />}
-            title="Nothing matches that"
-            description="Try a different search or clear the filter to see all your servers."
-            action={
-              <button
-                className="btn btn-secondary"
-                onClick={() => {
-                  setQuery('');
-                  setFilter('all');
-                }}
-              >
-                Clear filters
-              </button>
-            }
-          />
+          <div className="page-empty">
+            <EmptyState
+              icon={<IconSearch size={18} />}
+              title="Nothing matches that"
+              description="Try a different search or clear the filter to see all your servers."
+              action={
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setQuery('');
+                    setFilter('all');
+                  }}
+                >
+                  Clear filters
+                </button>
+              }
+            />
+          </div>
         ) : (
-          <div className="server-list">
-            {visible.map((server) => (
-              <ServerCard key={server.id} server={server} onRequestStop={() => setConfirmStop(server.id)} onRemove={(mode) => { setRemoveTarget({ id: server.id, mode }); setRemoveConfirmation(''); setCopiedRemovalName(false); }} />
+          <div className="srv-list" role="list">
+            {groups.map((group) => (
+              <section key={group.id} className="srv-group" aria-label={group.label}>
+                <header className="srv-group-head">
+                  <span className={`status-dot ${group.dot}`} aria-hidden="true" />
+                  <span className="srv-group-label">{group.label}</span>
+                  <span className="srv-group-count">{group.members.length}</span>
+                </header>
+                {group.members.map((server) => (
+                  <ServerRow key={server.id} server={server} onRequestStop={() => setConfirmStop(server.id)} onRemove={(mode) => { setRemoveTarget({ id: server.id, mode }); setRemoveConfirmation(''); setCopiedRemovalName(false); }} />
+                ))}
+              </section>
             ))}
           </div>
         )}
@@ -213,12 +235,15 @@ export default function ServersView() {
         </div>
       </Modal>
 
-      {wizardOpen && <AddServerWizard onClose={() => setWizardOpen(false)} />}
     </div>
   );
 }
 
-function ServerCard({ server, onRequestStop, onRemove }: { server: Server; onRequestStop: () => void; onRemove: (mode: 'forget' | 'recycle') => void }) {
+function needsAttention(server: Server) {
+  return server.status === 'crashed' || server.alerts.some((alert) => alert.severity !== 'info');
+}
+
+function ServerRow({ server, onRequestStop, onRemove }: { server: Server; onRequestStop: () => void; onRemove: (mode: 'forget' | 'recycle') => void }) {
   const store = useStore();
   const busy = isBusy(server.status);
   const operationBusy = (store.backupFlow?.serverId === server.id && store.backupFlow.phase === 'running')
@@ -227,134 +252,102 @@ function ServerCard({ server, onRequestStop, onRemove }: { server: Server; onReq
   const running = server.status === 'running';
   const starting = server.status === 'starting';
   const removable = server.status === 'stopped' || server.status === 'crashed';
-  const attention = server.status === 'crashed' || server.alerts.some((a) => a.severity !== 'info');
-  const storedCpu = server.history.map((sample) => sample.cpu);
-  const cpuHistory = [...storedCpu.slice(0, -1), server.cpu];
+  const cpuHistory = [...server.history.map((sample) => sample.cpu).slice(-40, -1), server.cpu];
 
   const open = (tab?: Parameters<typeof store.openServer>[1]) => store.openServer(server.id, tab);
 
   return (
     <div
-      className={`server-row ${attention ? 'needs-attention' : ''}`}
+      className={`srv-row ${server.status === 'crashed' ? 'is-crashed' : ''}`}
       onClick={() => open()}
-      role="button"
+      role="listitem"
       tabIndex={0}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           open();
         }
       }}
     >
-      <div className="server-row-icon">
-        <ServerIcon server={server} size={40} />
-      </div>
-
-      <div className="server-row-main">
-        <div className="server-row-top">
-          <span className="server-row-name">{server.name}</span>
-          <span className={`status-badge status-${statusTone(server.status)}`}>
-            {busy && <Spinner size={10} />}
-            {statusLabels[server.status]}
-          </span>
-          {server.alerts.length > 0 && server.status !== 'crashed' && (
-            <span className="alert-count">
-              {server.alerts.length} notice{server.alerts.length !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-
-        <div className="server-row-sub">
-          <span>
+      <div className="srv-cell srv-name-cell">
+        <ServerIcon server={server} size={28} />
+        <div className="srv-name-text">
+          <span className="srv-name">{server.name}</span>
+          <span className="srv-sub">
             {softwareLabel(server.type)} {server.version}
+            {server.status === 'crashed' && <span className="srv-sub-danger"> · stopped unexpectedly</span>}
+            {server.alerts.length > 0 && server.status !== 'crashed' && <span className="srv-sub-warn"> · {server.alerts.length} notice{server.alerts.length !== 1 ? 's' : ''}</span>}
           </span>
-          <span>·</span>
-          <span>
-            {server.players}/{server.maxPlayers} players
-          </span>
-          <span>·</span>
-          <span className="mono">:{server.port}</span>
-          {running && (
-            <>
-              <span>·</span>
-              <span>{formatUptime(server.startedAt)} up</span>
-            </>
-          )}
-          {server.status === 'crashed' && (
-            <>
-              <span>·</span>
-              <span className="sub-danger">stopped unexpectedly</span>
-            </>
-          )}
         </div>
-
-        {running && (
-          <div className="server-row-history">
-            <Sparkline data={cpuHistory} color={server.accent} height={32} label={server.id} />
-          </div>
-        )}
       </div>
 
-      <div className="server-row-meta">
-        {running && (
-          <div className="server-row-stats">
-            <div className="sstat">
-              <span className="sstat-l">CPU</span>
-              <span className="sstat-v">{server.cpu}%</span>
-            </div>
-            <div className="sstat">
-              <span className="sstat-l">Memory</span>
-              <span className="sstat-v">{formatMegabytes(server.memory)}</span>
-            </div>
-          </div>
+      <div className="srv-cell srv-spark" aria-hidden={!running}>
+        {running && <Sparkline data={cpuHistory} color="var(--st-running)" height={22} label={`Processor history for ${server.name}`} maxValue={100} />}
+      </div>
+
+      <div className="srv-cell srv-metric">
+        <span className="srv-metric-label">CPU</span>
+        <span className="srv-metric-value">{running ? `${Math.round(server.cpu)}%` : '—'}</span>
+      </div>
+      <div className="srv-cell srv-metric">
+        <span className="srv-metric-label">Memory</span>
+        <span className="srv-metric-value">{running ? formatMegabytes(server.memory) : '—'}</span>
+      </div>
+      <div className="srv-cell srv-metric">
+        <span className="srv-metric-label">Players</span>
+        <span className="srv-metric-value">{server.players}/{server.maxPlayers}</span>
+      </div>
+      <div className="srv-cell srv-metric srv-metric-wide">
+        <span className="srv-metric-label">{running ? 'Uptime' : 'Port'}</span>
+        <span className="srv-metric-value">{running ? formatUptime(server.startedAt) : <span className="mono">{server.port}</span>}</span>
+      </div>
+
+      <div className="srv-cell srv-actions" onClick={(e) => e.stopPropagation()}>
+        {busy && <span className="srv-busy"><Spinner size={12} />{statusLabels[server.status]}</span>}
+        {(server.status === 'stopped' || server.status === 'crashed') && (
+          <button className="btn btn-sm btn-secondary" disabled={busy || operationBusy} onClick={() => store.startServer(server.id)}>
+            <IconPlay size={12} /> Start
+          </button>
+        )}
+        {(running || starting) && (
+          <>
+            {running && (
+              <button className="btn btn-sm btn-ghost" disabled={operationBusy} onClick={() => store.restartServer(server.id)}>
+                Restart
+              </button>
+            )}
+            <button className="btn btn-sm btn-ghost" disabled={operationBusy} onClick={onRequestStop}>
+              Stop
+            </button>
+          </>
         )}
 
-        <div className="server-row-actions" onClick={(e) => e.stopPropagation()}>
-          {(server.status === 'stopped' || server.status === 'crashed') && (
-            <button className="btn btn-sm btn-primary" disabled={busy || operationBusy} onClick={() => store.startServer(server.id)}>
-              Start
+        <Menu
+          trigger={
+            <button className="btn btn-sm btn-icon btn-ghost" aria-label={`More actions for ${server.name}`}>
+              <IconDots size={14} />
             </button>
-          )}
-          {(running || starting) && (
-            <>
-              {running && (
-                <button className="btn btn-sm btn-ghost" disabled={operationBusy} onClick={() => store.restartServer(server.id)}>
-                  Restart
-                </button>
-              )}
-              <button className="btn btn-sm btn-ghost" disabled={operationBusy} onClick={onRequestStop}>
-                Stop
-              </button>
-            </>
-          )}
-          {busy && <Spinner size={14} />}
-
-          <Menu
-            trigger={
-              <button className="btn btn-sm btn-icon btn-ghost" aria-label={`More actions for ${server.name}`}>
-                <IconDots size={14} />
-              </button>
-            }
-            items={[
-              { label: 'Open console', onSelect: () => open('console') },
-              { label: 'Players', onSelect: () => open('players') },
-              { label: 'Backups', onSelect: () => open('backups') },
-              { label: 'Settings', onSelect: () => open('settings') },
-              {
-                label: 'Create backup',
-                onSelect: () => open('backups'),
-                disabled: operationBusy,
-                hint: running && server.players > 0 ? 'players online' : undefined,
-              },
-              {
-                label: 'Open folder',
-                onSelect: () => store.revealPath(server.folder),
-              },
-              { label: 'Remove from Nooki', onSelect: () => onRemove('forget'), disabled: !removable },
-              { label: 'Move files to Recycle Bin', onSelect: () => onRemove('recycle'), disabled: !removable },
-            ]}
-          />
-        </div>
+          }
+          items={[
+            { label: 'Open console', onSelect: () => open('console') },
+            { label: 'Players', onSelect: () => open('players') },
+            { label: 'Backups', onSelect: () => open('backups') },
+            { label: 'Settings', onSelect: () => open('settings') },
+            {
+              label: 'Create backup',
+              onSelect: () => open('backups'),
+              disabled: operationBusy,
+              hint: running && server.players > 0 ? 'players online' : undefined,
+            },
+            {
+              label: 'Open folder',
+              onSelect: () => store.revealPath(server.folder),
+            },
+            { label: 'Remove from Nooki', onSelect: () => onRemove('forget'), disabled: !removable },
+            { label: 'Move files to Recycle Bin', onSelect: () => onRemove('recycle'), disabled: !removable, danger: true },
+          ]}
+        />
       </div>
     </div>
   );

@@ -1,0 +1,44 @@
+.toaster { position: fixed; right: 20px; bottom: 20px; z-index: 1000; display: flex; width: min(356px, calc(100vw - 40px)); flex-direction: column; gap: 8px; pointer-events: none; }
+
+.toast {
+  --toast-tone: var(--muted-foreground);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 12px 12px 14px;
+  border-radius: var(--radius-2xl);
+  background: var(--popover);
+  box-shadow: var(--sh-lg);
+  color: var(--popover-foreground);
+  pointer-events: auto;
+  /* Tuned to the component rather than the generic UI budget: a slightly
+     slower, gentler curve reads as calm for something that interrupts. */
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 400ms ease, transform 400ms ease;
+}
+
+@starting-style {
+  .toast { opacity: 0; transform: translateY(100%); }
+}
+
+.toast[data-leaving] { opacity: 0; transform: translateY(100%); pointer-events: none; }
+
+.toast-success { --toast-tone: var(--st-running); }
+.toast-error { --toast-tone: var(--destructive); }
+.toast-warning { --toast-tone: var(--st-warning); }
+.toast-progress { --toast-tone: var(--foreground); }
+.toast-icon { display: grid; height: 18px; flex: 0 0 auto; place-items: center; color: var(--toast-tone); }
+.toast-content { min-width: 0; flex: 1; }
+.toast-title { color: var(--foreground); font-size: 13px; font-weight: 500; line-height: 18px; }
+.toast-detail { margin-top: 2px; color: var(--muted-foreground); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+.toast-progress { height: 3px; margin-top: 10px; overflow: hidden; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 10%, transparent); }
+.toast-progress-fill { height: 100%; border-radius: inherit; background: var(--foreground); transform-origin: left center; transition: transform 250ms var(--ease-out); }
+.toast-close { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; margin: -2px -2px 0 0; border-radius: var(--radius-md); color: var(--muted-foreground); transition: background-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth); }
+.toast-close:hover { background: var(--bg-hover); color: var(--foreground); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition: opacity 200ms ease; }
+  @starting-style { .toast { transform: none; } }
+  .toast[data-leaving] { transform: none; }
+}
