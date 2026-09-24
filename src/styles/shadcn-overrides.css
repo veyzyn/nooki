@@ -163,9 +163,6 @@
 /* Hover is colour only: these are scanned and clicked constantly. */
 .choice:hover,
 .soft-card:hover,
-.settings-card:hover,
-.plugin-row:hover,
-.database-card:hover,
 .modpack-project:hover,
 .modpack-version:hover,
 .world-card:hover {
@@ -179,7 +176,6 @@
    because the surface is bigger. */
 .choice:active,
 .soft-card:active,
-.database-card:active,
 .modpack-project:active,
 .modpack-version:active,
 .world-card:active {

@@ -292,7 +292,7 @@ export default function PluginsTab({ server }: { server: Server }) {
                   </div>
                   <span className="plugin-description">{project.description}</span>
                   <span className="plugin-meta">{compactNumber(project.downloads)} downloads · {compactNumber(project.stars)} stars · updated {formatRelative(project.lastUpdated)}</span>
-                  {busy && <div className="plugin-install-progress"><span style={{ width: `${installProgress}%` }} /></div>}
+                  {busy && <div className="plugin-install-progress"><span style={{ transform: `scaleX(${Math.max(0, Math.min(100, installProgress)) / 100})` }} /></div>}
                 </div>
                 <button className={`btn btn-sm ${busy ? 'btn-secondary' : installed ? 'btn-secondary plugin-installed-btn' : 'btn-primary'}`} disabled={installed || !installable || (installing !== null && !busy) || (busy && !operationId)} onClick={() => busy && operationId ? void store.cancelOperation(operationId) : void chooseVersion(project)}>
                   {busy ? <IconX size={12} /> : installed ? <IconCheck size={13} /> : <IconDownload size={13} />}

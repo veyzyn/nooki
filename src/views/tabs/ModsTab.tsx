@@ -302,7 +302,7 @@ export default function ModsTab({ server }: { server: Server }) {
                 <div className="plugin-name-line"><span className="plugin-name">{project.name}</span><span className="plugin-author">by {project.author}</span></div>
                 <span className="plugin-description">{project.description}</span>
                 <span className="plugin-meta">{compactNumber(project.downloads)} downloads{project.followers ? ` · ${compactNumber(project.followers)} followers` : ''} · updated {formatRelative(project.lastUpdated)}</span>
-                {busy && !manual && <div className="plugin-install-progress"><span style={{ width: `${installProgress}%` }} /></div>}
+                {busy && !manual && <div className="plugin-install-progress"><span style={{ transform: `scaleX(${Math.max(0, Math.min(100, installProgress)) / 100})` }} /></div>}
               </div>
               <button className={`btn btn-sm ${busy ? 'btn-secondary' : installed ? 'btn-secondary plugin-installed-btn' : 'btn-primary'}`} disabled={installed || !installable || (installing !== null && !busy) || (busy && (Boolean(manual) || !operationId))} onClick={() => busy && operationId ? void store.cancelOperation(operationId) : void chooseVersion(project)}>
                 {busy && !manual ? <IconX size={12} /> : installed ? <IconCheck size={13} /> : <IconDownload size={13} />}
