@@ -191,6 +191,9 @@
 .work-msg { min-height: 18px; color: var(--muted-foreground); font-size: 12.5px; line-height: 1.45; text-align: center; }
 
 .done-panel { display: flex; flex-direction: column; align-items: stretch; gap: 16px; }
+/* The overrides list .done-panel as a card surface, but it is only a layout
+   wrapper; the card is .done-summary inside it. */
+.modal .done-panel { background: transparent !important; }
 
 /* A rare moment, so the check gets a short pop once the modal has landed. */
 .done-check { display: grid; width: 44px; height: 44px; place-items: center; margin: 4px auto 0; border-radius: 50%; animation: done-check-in 300ms var(--ease-out) 80ms both; }
