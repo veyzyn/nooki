@@ -52,7 +52,7 @@
 /* The fill width is set inline by the view, so it steps rather than
    transitions: width is layout and is never animated. */
 .quick-world-progress-track { height: 4px; margin-top: 14px; overflow: hidden; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 9%, transparent); }
-.quick-world-progress-track span { display: block; height: 100%; border-radius: inherit; background: var(--foreground); }
+.quick-world-progress-track span { display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--foreground); transform-origin: left center; transition: transform 250ms var(--ease-out); }
 
 .quick-world-version .custom-select { width: 210px; flex: 0 0 auto; }
 

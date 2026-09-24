@@ -121,7 +121,6 @@
 .soft-card,
 .review,
 .eula,
-.done-panel,
 .done-summary,
 .scan,
 .settings-card,
@@ -183,8 +182,7 @@
 }
 
 .choice-icon,
-.review-icon,
-.done-check {
+.review-icon {
   border: 1px solid var(--border-strong) !important;
   background: color-mix(in oklab, var(--foreground) 4%, transparent) !important;
   color: var(--foreground) !important;
@@ -192,6 +190,14 @@
 }
 
 .choice:hover .choice-icon { transform: none !important; }
+
+/* Success is a state, so the finished check keeps the "live" green. */
+.done-check {
+  border: 1px solid color-mix(in oklab, var(--st-running) 35%, transparent) !important;
+  background: var(--st-running-bg) !important;
+  color: var(--st-running) !important;
+  box-shadow: none !important;
+}
 
 .soft-card.active,
 .preset.active,

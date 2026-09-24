@@ -174,7 +174,7 @@ function QuickWorldDrop() {
             {phase === 'creating' && <span>{Math.round(progress)}%</span>}
             {phase === 'creating' && <button className="btn btn-secondary btn-sm" disabled={!operationId || cancelling} onClick={() => void cancelCreate()}>{cancelling ? 'Cancelling…' : 'Cancel'}</button>}
           </div>
-          <div className="quick-world-progress-track"><span style={{ width: `${phase === 'scanning' ? 12 : Math.max(2, progress)}%` }} /></div>
+          <div className="quick-world-progress-track"><span style={{ transform: `scaleX(${(phase === 'scanning' ? 12 : Math.min(100, Math.max(2, progress))) / 100})` }} /></div>
         </div>
       ) : phase === 'select-version' && scan ? (
         <div className="quick-world-version">
