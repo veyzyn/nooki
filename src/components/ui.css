@@ -130,14 +130,19 @@
   transform: translateY(-50%);
 }
 
-.stepper { display: flex; width: 100%; align-items: center; }
-.stepper-item { position: relative; display: flex; min-width: 0; flex: 1; align-items: center; gap: 8px; color: var(--muted-foreground); }
-.stepper-item:not(:last-child)::after { content: ""; height: 1px; flex: 1; margin-right: 8px; background: var(--border); transition: background-color var(--dur-slow) var(--ease-smooth); }
+/* Steps size to their labels and the connectors share the leftover space,
+   so the row spans the full width with even gaps and nothing truncates. */
+.stepper { display: flex; width: 100%; align-items: center; gap: 10px; }
+.stepper-item { position: relative; display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: 8px; color: var(--muted-foreground); }
+.stepper-item:last-child { flex: 0 0 auto; }
+.stepper-item:not(:last-child)::after { content: ""; height: 1px; min-width: 12px; flex: 1 1 auto; margin-left: 2px; background: var(--border); transition: background-color var(--dur-slow) var(--ease-smooth); }
 .stepper-item.is-done:not(:last-child)::after { background: var(--border-strong); }
-.stepper-dot { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--background); color: var(--muted-foreground); font-size: 11px; font-weight: 500; transition: background-color var(--dur-slow) var(--ease-smooth), border-color var(--dur-slow) var(--ease-smooth), color var(--dur-slow) var(--ease-smooth); }
+/* text-box trimming centres the numeral's actual ink, not its line box. */
+.stepper-dot { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--background); color: var(--muted-foreground); font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1; text-box: trim-both cap alphabetic; transition: background-color var(--dur-slow) var(--ease-smooth), border-color var(--dur-slow) var(--ease-smooth), color var(--dur-slow) var(--ease-smooth); }
+.stepper-dot svg { display: block; }
 .stepper-item.is-done .stepper-dot { border-color: var(--foreground); background: var(--foreground); color: var(--background); }
 .stepper-item.is-active .stepper-dot { border-color: var(--foreground); color: var(--foreground); }
-.stepper-label { overflow: hidden; color: inherit; font-size: 12px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.stepper-label { flex: 0 0 auto; color: inherit; font-size: 12px; font-weight: 500; white-space: nowrap; }
 .stepper-item.is-active .stepper-label { color: var(--foreground); }
 
 .picker { display: flex; min-width: 0; align-items: center; gap: 8px; }

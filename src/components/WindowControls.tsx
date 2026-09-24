@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import { Copy, Minus, Square, X } from 'lucide-react';
 import './WindowControls.css';
 
 const appWindow = getCurrentWindow();
@@ -38,7 +37,7 @@ export default function WindowControls() {
         title="Minimize"
         onClick={() => { void appWindow.minimize(); }}
       >
-        <Minus aria-hidden="true" />
+        <CaptionGlyph kind="minimize" />
       </button>
       <button
         type="button"
@@ -47,7 +46,7 @@ export default function WindowControls() {
         title={maximized ? 'Restore' : 'Maximize'}
         onClick={toggleMaximize}
       >
-        {maximized ? <Copy aria-hidden="true" className="is-restore" /> : <Square aria-hidden="true" />}
+        <CaptionGlyph kind={maximized ? 'restore' : 'maximize'} />
       </button>
       <button
         type="button"
@@ -56,8 +55,21 @@ export default function WindowControls() {
         title="Close"
         onClick={() => { void appWindow.close(); }}
       >
-        <X aria-hidden="true" />
+        <CaptionGlyph kind="close" />
       </button>
     </div>
+  );
+}
+
+/* Windows-style caption glyphs: 10px, 1px hairlines on half-pixel coordinates
+   so every stroke lands on a whole device pixel and sits dead centre. */
+function CaptionGlyph({ kind }: { kind: 'minimize' | 'maximize' | 'restore' | 'close' }) {
+  return (
+    <svg className="caption-glyph" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+      {kind === 'minimize' && <path d="M0 5.5h10" />}
+      {kind === 'maximize' && <rect x="0.5" y="0.5" width="9" height="9" />}
+      {kind === 'restore' && <><rect x="0.5" y="2.5" width="7" height="7" /><path d="M2.5 2.5v-2h7v7h-2" /></>}
+      {kind === 'close' && <path d="M0.5 0.5l9 9M9.5 0.5l-9 9" />}
+    </svg>
   );
 }

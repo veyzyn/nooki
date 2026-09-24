@@ -1,7 +1,7 @@
-.window-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; margin-left: 6px; padding-left: 8px; border-left: 1px solid var(--border); }
-.window-control { display: grid; width: 32px; height: 28px; place-items: center; border-radius: var(--radius-md); color: var(--muted-foreground); }
-.window-control svg { width: 13px; height: 13px; stroke-width: 1.6; }
-.window-control svg.is-restore { width: 12px; height: 12px; transform: scaleX(-1); }
+.window-controls { display: flex; height: 28px; flex: 0 0 auto; align-items: center; gap: 2px; margin-left: 10px; padding-left: 6px; border-left: 1px solid var(--border); }
+.window-control { display: grid; width: 34px; height: 28px; place-items: center; border-radius: var(--radius-md); color: var(--muted-foreground); }
+.caption-glyph { display: block; width: 10px; height: 10px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1; shape-rendering: crispEdges; }
+.window-close .caption-glyph { shape-rendering: geometricPrecision; }
 .window-control:hover { background: var(--bg-hover); color: var(--foreground); }
 .window-control:active { background: var(--bg-active); }
 .window-close:hover { background: #c42b1c; color: white; }

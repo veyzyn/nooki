@@ -1,6 +1,6 @@
 .sidebar { display: flex; width: var(--sidebar-w); height: 100%; flex: 0 0 auto; flex-direction: column; background: var(--sidebar); color: var(--sidebar-foreground); }
 
-.sidebar-head { display: flex; height: var(--topbar-h); flex: 0 0 auto; align-items: center; justify-content: space-between; margin-top: var(--panel-inset); padding: 0 10px 0 14px; }
+.sidebar-head { display: flex; height: var(--topbar-h); flex: 0 0 auto; align-items: center; justify-content: space-between; margin-top: calc(var(--panel-inset) + 1px); padding: 0 10px 0 14px; }
 .sidebar-brand { display: flex; align-items: center; gap: 9px; color: var(--foreground); font-size: 14px; font-weight: 600; letter-spacing: -0.01em; pointer-events: none; }
 .sidebar-icon-btn { display: grid; width: 28px; height: 28px; place-items: center; border-radius: var(--radius-md); color: var(--muted-foreground); transition: background-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth), transform 160ms var(--ease-out); }
 .sidebar-icon-btn:hover { background: var(--bg-hover); color: var(--foreground); }

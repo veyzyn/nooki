@@ -1,4 +1,6 @@
-.topbar { position: relative; z-index: 5; display: flex; height: var(--topbar-h); flex: 0 0 auto; align-items: center; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border); user-select: none; }
+/* The bottom border sits outside the bar's height (content-box) so the row is
+   an even 44px and 28px controls centre on whole pixels, not half pixels. */
+.topbar { position: relative; z-index: 5; box-sizing: content-box; display: flex; height: var(--topbar-h); flex: 0 0 auto; align-items: center; gap: 8px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--border); user-select: none; }
 .topbar-spacer { align-self: stretch; min-width: 24px; flex: 1; }
 .topbar-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
 .topbar-actions:empty { display: none; }
