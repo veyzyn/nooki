@@ -1,84 +1,109 @@
-.logs-tab {
-  padding: var(--s-5) var(--s-6) var(--s-6);
-  gap: var(--s-4);
-}
+.tab.logs-tab { gap: 16px; }
 
 .logs-toolbar {
   display: flex;
-  align-items: center;
-  gap: var(--s-3);
   flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
 }
 
+/* Sized to its rows, up to the space available; then it scrolls with a
+   sticky header. It never stretches into a tall empty box. */
 .logs-panel {
-  flex: 1;
   min-height: 0;
+  flex: 0 1 auto;
   overflow-y: auto;
-  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: var(--radius-2xl);
+  background: var(--card);
 }
 
-.logs-head-row {
+.logs-head-row,
+.logs-row {
   display: grid;
-  grid-template-columns: 180px 100px 90px 150px 1fr;
-  gap: var(--s-4);
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  grid-template-columns: minmax(160px, 1fr) 110px 90px 150px 96px;
+  align-items: center;
+  column-gap: 16px;
+  padding: 0 12px 0 16px;
+}
+
+/* Opaque so rows don't show through while it sticks. Needs to outrank the
+   translucent tint shadcn-overrides.css gives this class. */
+.logs-panel > .logs-head-row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 36px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--background) 92%, var(--foreground) 3%) !important;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .logs-row {
-  display: grid;
-  grid-template-columns: 180px 100px 90px 150px 1fr;
-  gap: var(--s-4);
-  align-items: center;
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
+  min-height: 52px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 120ms var(--ease-smooth);
 }
 
-.logs-row:last-child {
-  border-bottom: none;
-}
+.logs-row:last-child { border-bottom: 0; }
+.logs-row:hover { background: color-mix(in oklab, var(--foreground) 2.5%, transparent); }
 
 .logs-when {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .logs-date {
-  font-size: var(--fs-sm);
+  color: var(--foreground);
+  font-size: 13px;
   font-weight: 500;
 }
 
 .logs-time {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .logs-cell {
-  font-size: var(--fs-sm);
+  min-width: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+.logs-row .status-badge { justify-self: start; }
 
 .logs-actions {
   display: flex;
   justify-content: flex-end;
+  gap: 4px;
 }
 
+.logs-panel > .empty { min-height: 220px; }
+
+/* Saved-log viewer inside the modal. Line styles live in ConsoleTab.css. */
 .log-viewer {
   max-height: 60vh;
+  padding: 10px 0;
   overflow-y: auto;
-  background: var(--bg-inset);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: var(--s-3) 0;
+  border-radius: var(--radius-2xl);
+  background: var(--bg-inset);
   font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  line-height: 1.65;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .logs-head-row,
+  .logs-row { grid-template-columns: minmax(140px, 1fr) 90px 150px 80px; }
+  .logs-head-row > :nth-child(3),
+  .logs-row > :nth-child(3) { display: none; }
 }

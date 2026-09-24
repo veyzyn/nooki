@@ -1,175 +1,172 @@
-.console-tab {
-  padding: var(--s-5) var(--s-6) var(--s-6);
-  gap: var(--s-3);
+/* The console legitimately fills the tab: toolbar, a scrolling inset output
+   and the command row. Nothing here animates; lines just appear. */
+.tab.console-tab {
+  gap: 12px;
+  padding: 16px 28px 24px;
   overflow: hidden;
 }
 
 .console-toolbar {
   display: flex;
-  align-items: center;
-  gap: var(--s-3);
   flex-shrink: 0;
-  padding: var(--s-2) 0;
+  align-items: center;
+  gap: 8px;
 }
 
+/* Border, background and focus ring come from shadcn-overrides.css. */
 .console-search {
   display: flex;
-  align-items: center;
-  gap: var(--s-2);
+  height: 32px;
   flex: 1;
   max-width: 320px;
-  height: 32px;
-  padding: 0 var(--s-3);
-  background: var(--bg-inset);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  color: var(--text-muted);
-  transition:
-    border-color var(--dur) var(--ease-smooth),
-    box-shadow var(--dur) var(--ease-smooth);
-}
-
-.console-search:focus-within {
-  border-color: var(--accent);
-  box-shadow:
-    0 0 0 3px var(--accent-ring),
-    0 0 16px rgba(95, 184, 127, 0.1);
-  color: var(--text-secondary);
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 10px;
+  color: var(--muted-foreground);
 }
 
 .console-search-input {
-  flex: 1;
   min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
   background: none;
-  border: none;
-  font-size: var(--fs-sm);
-  color: var(--text);
+  color: var(--foreground);
+  font-size: 13px;
+  outline: none;
 }
 
-.console-toolbar .is-paused {
+.console-search-input::placeholder { color: var(--text-faint); }
+.console-search .icon-btn { width: 22px; height: 22px; }
+
+.console-toolbar .segmented { margin-right: 4px; }
+
+/* Paused auto-scroll is a state worth noticing, so it takes the warning hue. */
+.console-toolbar .btn.is-paused,
+.console-toolbar .btn.is-paused:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--st-warning) 10%, transparent);
   color: var(--st-warning);
-  background: var(--st-warning-bg);
-  border-color: rgba(230, 181, 99, 0.3);
-  box-shadow: 0 0 12px rgba(230, 181, 99, 0.2);
 }
 
 /* ----------------------------- Output ------------------------------ */
 
 .console-output {
-  flex: 1;
   min-height: 0;
+  flex: 1;
+  padding: 10px 0;
   overflow-y: auto;
-  background: var(--bg-inset);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  padding: var(--s-3) 0;
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  line-height: 1.7;
-  cursor: text;
-  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.28);
   overflow-anchor: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  background: var(--bg-inset);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: text;
 }
 
+.console-output > .empty { min-height: 100%; }
+
+/* Shared by the live console and the saved-log viewer in LogsTab. */
 .log-line {
   display: flex;
-  gap: var(--s-3);
-  padding: 1px var(--s-4);
+  gap: 12px;
+  padding: 1px 16px;
   white-space: pre-wrap;
   word-break: break-word;
   contain: layout paint style;
   content-visibility: auto;
-  contain-intrinsic-size: auto 24px;
+  contain-intrinsic-size: auto 21px;
+  transition: background-color 120ms var(--ease-smooth);
 }
 
-.log-line:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
-
+/* State tints: a hairline marker plus a whisper of colour. The marker is a
+   shadow so the text column doesn't shift on flagged lines. */
 .log-line.level-warn {
-  background: rgba(230, 181, 99, 0.05);
-  border-left: 2px solid rgba(230, 181, 99, 0.4);
+  background: color-mix(in oklab, var(--st-warning) 5%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--st-warning) 55%, transparent);
 }
 
 .log-line.level-error {
-  background: rgba(230, 120, 114, 0.07);
-  border-left: 2px solid rgba(230, 120, 114, 0.5);
+  background: color-mix(in oklab, var(--destructive) 6%, transparent);
+  box-shadow: inset 2px 0 0 color-mix(in oklab, var(--destructive) 60%, transparent);
 }
 
 .log-time {
-  color: var(--text-faint);
   flex-shrink: 0;
+  color: var(--text-faint);
   font-variant-numeric: tabular-nums;
   user-select: none;
-  letter-spacing: 0.02em;
 }
 
 .log-source {
-  color: var(--text-muted);
-  flex-shrink: 0;
   min-width: 116px;
+  flex-shrink: 0;
   overflow: hidden;
+  color: var(--muted-foreground);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .log-text {
-  flex: 1;
   min-width: 0;
+  flex: 1;
+  color: var(--text-secondary);
 }
+
+.log-line.level-warn .log-text { color: var(--st-warning); }
+.log-line.level-error .log-text { color: var(--destructive); }
 
 /* ------------------------------ Input ------------------------------ */
 
 .console-input-row {
   display: flex;
-  align-items: center;
-  gap: var(--s-2);
+  height: 40px;
   flex-shrink: 0;
-  padding: var(--s-2) var(--s-4);
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  box-shadow: none;
+  align-items: center;
+  gap: 6px;
+  padding: 0 5px 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  background: color-mix(in oklab, var(--foreground) 2%, transparent);
   transition:
     border-color var(--dur) var(--ease-smooth),
     box-shadow var(--dur) var(--ease-smooth);
 }
 
+.console-input-row:hover { border-color: color-mix(in oklab, var(--foreground) 20%, transparent); }
+
 .console-input-row:focus-within {
-  border-color: var(--accent);
-  box-shadow:
-    inset 0 1px 0 rgba(95, 184, 127, 0.1),
-    0 0 0 3px var(--accent-ring),
-    0 0 20px rgba(95, 184, 127, 0.12);
+  border-color: color-mix(in oklab, var(--foreground) 36%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 
 .console-prompt {
+  color: var(--text-faint);
   font-family: var(--font-mono);
-  color: var(--st-running);
-  font-size: var(--fs-lg);
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 500;
   user-select: none;
-  padding-left: var(--s-1);
-  text-shadow: none;
+  transition: color var(--dur) var(--ease-smooth);
 }
+
+.console-input-row:focus-within .console-prompt { color: var(--foreground); }
 
 .console-input {
-  flex: 1;
   min-width: 0;
+  height: 100%;
+  flex: 1;
+  border: 0;
   background: none;
-  border: none;
+  caret-color: var(--foreground);
+  color: var(--foreground);
   font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--text);
-  height: 30px;
-  caret-color: var(--accent);
+  font-size: 12.5px;
+  outline: none;
 }
 
-.console-input:disabled {
-  color: var(--text-faint);
-  cursor: not-allowed;
-}
+.console-input::placeholder { color: var(--text-faint); }
 
-.history-btn {
-  color: var(--text-muted);
-}
+.console-input:disabled { cursor: default; }
+
+.history-btn { width: 28px; padding: 0; color: var(--muted-foreground); }

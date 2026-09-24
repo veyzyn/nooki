@@ -1,113 +1,101 @@
+/* ==========================================================================
+   Install a modpack
+   Shares .wizard, .wizard-panel, .mem-*, .preset, .review and .work with
+   AddServerWizard.css. Surfaces, hover colours and selected states for
+   .modpack-browser, rails, rows and search come from shadcn-overrides.css.
+   ========================================================================== */
+
 .modpack-modal { height: auto; }
 .modpack-modal.is-browser-step { height: min(720px, calc(100vh - 48px)); }
 .modpack-modal.is-browser-step .modal-body { flex: 1; overflow: hidden; }
 .modpack-modal.is-browser-step .modpack-wizard { height: 100%; min-height: 0; }
 
-.modpack-browser {
-  min-height: 0;
-  flex: 1;
-  display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-inset);
-}
+/* ------------------------------- Browser -------------------------------- */
 
-.modpack-provider-rail {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: var(--s-3) var(--s-2);
-  border-right: 1px solid var(--border-subtle);
-  background: var(--bg-surface);
-}
+.modpack-browser { display: grid; min-height: 0; flex: 1; grid-template-columns: 140px minmax(0, 1fr); overflow: hidden; border: 1px solid var(--border); }
 
-.modpack-provider-rail button {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  min-height: 42px;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: var(--r-sm);
-  color: var(--text-secondary);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  text-align: left;
-}
+.modpack-provider-rail { display: flex; flex-direction: column; gap: 2px; padding: 8px; border-right: 1px solid var(--border); }
+.modpack-provider-rail button { display: flex; min-height: 34px; align-items: center; gap: 8px; padding: 0 8px; border: 1px solid transparent; color: var(--muted-foreground); font-size: 13px; font-weight: 500; text-align: left; }
+.modpack-provider-rail button:hover:not(.active) { background: var(--bg-hover); color: var(--foreground); }
+.modpack-provider-rail button:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 70%, transparent); }
 
-.modpack-provider-rail button:hover { background: var(--bg-surface-2); color: var(--text); }
-.modpack-provider-rail button.active { border-color: var(--border); background: var(--bg-surface-2); color: var(--text); }
+.provider-symbol { display: grid; width: 22px; height: 22px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-md); background: color-mix(in oklab, var(--foreground) 4%, transparent); }
+.provider-symbol img { width: 14px; height: 14px; object-fit: contain; }
 
-.provider-symbol {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 7px;
-  background: var(--bg-surface-3);
-  color: var(--text);
-  font-size: 11px;
-  font-weight: 800;
-}
-.provider-symbol img { width: 15px; height: 15px; object-fit: contain; }
+.modpack-results { display: flex; min-width: 0; min-height: 0; flex-direction: column; padding: 10px; }
+.modpack-search { display: flex; height: 32px; flex: 0 0 auto; align-items: center; gap: 8px; padding: 0 10px; color: var(--muted-foreground); }
+.modpack-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; }
+.modpack-search input::placeholder { color: var(--text-faint); }
 
-.modpack-results { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: var(--s-3); }
-.modpack-search { height: 36px; display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--s-3); border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-surface); color: var(--text-muted); }
-.modpack-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-ring); }
-.modpack-search input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; font-size: var(--fs-sm); }
-
-.modpack-project-list, .modpack-version-list { min-height: 0; flex: 1; overflow-y: auto; margin-top: var(--s-2); }
-.modpack-project { width: 100%; display: flex; align-items: center; gap: var(--s-3); min-height: 68px; padding: var(--s-2) var(--s-3); border: 1px solid transparent; border-radius: var(--r-sm); text-align: left; }
-.modpack-project:hover { border-color: var(--border); background: var(--bg-surface-2); }
-.modpack-logo { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; overflow: hidden; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface-2); color: var(--accent); }
-.modpack-logo img { width: 100%; height: 100%; object-fit: cover; }
-.modpack-project-copy { min-width: 0; display: flex; flex: 1; flex-direction: column; gap: 3px; }
-.modpack-project-copy strong { color: var(--text); font-size: var(--fs-sm); }
-.modpack-project-copy small { overflow: hidden; color: var(--text-secondary); font-size: var(--fs-xs); text-overflow: ellipsis; white-space: nowrap; }
-.modpack-project-copy em { color: var(--text-muted); font-size: 10px; font-style: normal; }
-
-.modpack-back { align-self: flex-start; display: flex; align-items: center; gap: 5px; padding: 3px 0; color: var(--text-muted); font-size: var(--fs-xs); }
-.modpack-back:hover { color: var(--text); }
-.modpack-selected-head { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) 0 var(--s-2); }
-.modpack-selected-head div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.modpack-selected-head strong { color: var(--text); font-size: var(--fs-md); }
-.modpack-selected-head span { color: var(--text-muted); font-size: var(--fs-xs); }
+.modpack-project-list,
+.modpack-version-list { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 1px; margin-top: 8px; overflow-y: auto; }
 .modpack-version-list { margin-top: 0; }
-.modpack-version { width: 100%; min-height: 57px; display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-2) var(--s-3); border: 1px solid transparent; border-radius: var(--r-sm); text-align: left; }
-.modpack-version:hover { background: var(--bg-surface-2); }
-.modpack-version.active { border-color: rgba(95, 184, 127, .35); background: var(--accent-soft); }
-.modpack-version > span:first-child { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.modpack-version strong { color: var(--text); font-size: var(--fs-sm); }
-.modpack-version small { color: var(--text-muted); font-size: var(--fs-xs); }
-.modpack-version-tags { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; color: var(--accent); }
-.modpack-version-tags em { padding: 2px 6px; border-radius: var(--r-pill); background: var(--bg-surface-3); color: var(--text-muted); font-size: 9px; font-style: normal; font-weight: 650; text-transform: uppercase; }
-.modpack-version-tags em.auto { background: var(--accent-soft); color: var(--accent); }
-.modpack-version-tags em.manual { background: var(--st-warning-bg); color: var(--st-warning); }
 
-.modpack-project-skeleton, .modpack-version-skeleton { display: flex; align-items: center; gap: var(--s-3); min-height: 64px; padding: var(--s-2) var(--s-3); }
-.modpack-project-skeleton > i { width: 42px; height: 42px; flex: 0 0 auto; border-radius: var(--r-md); }
-.modpack-project-skeleton span { flex: 1; display: grid; gap: 8px; }
-.modpack-project-skeleton span i:first-child, .modpack-version-skeleton i:first-child { width: 38%; height: 10px; }
-.modpack-project-skeleton span i:last-child, .modpack-version-skeleton i:last-child { width: 72%; height: 8px; }
-.modpack-project-skeleton i, .modpack-version-skeleton i { display: block; border-radius: var(--r-sm); background: var(--bg-surface-3); animation: modpack-pulse 1.35s ease-in-out infinite alternate; }
-.modpack-version-skeleton { flex-direction: column; align-items: flex-start; justify-content: center; gap: 9px; }
+/* Rows: flat until hovered. Hover and press come from the overrides, which
+   also give the row a border; keep it transparent at rest. */
+.modpack-project { display: flex; width: 100%; min-height: 64px; flex: 0 0 auto; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--radius-lg); color: var(--foreground); text-align: left; }
+.modpack-project:focus-visible,
+.modpack-version:focus-visible { outline: none; border-color: var(--ring) !important; }
+.modpack-logo { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; overflow: hidden; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: color-mix(in oklab, var(--foreground) 4%, transparent); color: var(--muted-foreground); }
+.modpack-logo img { width: 100%; height: 100%; object-fit: cover; }
+.modpack-project-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+.modpack-project-copy strong { overflow: hidden; color: var(--foreground); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.modpack-project-copy small { overflow: hidden; color: var(--muted-foreground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.modpack-project-copy em { color: var(--text-faint); font-size: 11.5px; font-style: normal; font-variant-numeric: tabular-nums; }
 
-@keyframes modpack-pulse { to { opacity: .45; } }
-@media (prefers-reduced-motion: reduce) { .modpack-project-skeleton i, .modpack-version-skeleton i { animation: none; } }
+.modpack-back { display: inline-flex; height: 26px; align-self: flex-start; align-items: center; gap: 5px; margin-left: -6px; padding: 0 8px 0 6px; border-radius: var(--radius-md); color: var(--muted-foreground); font-size: 12px; font-weight: 500; transition: background-color var(--dur) var(--ease-smooth), color var(--dur) var(--ease-smooth); }
+.modpack-back:hover { background: var(--bg-hover); color: var(--foreground); }
+.modpack-selected-head { display: flex; align-items: center; gap: 12px; padding: 10px 0 12px; }
+.modpack-selected-head div { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+.modpack-selected-head strong { overflow: hidden; color: var(--foreground); font-size: 14px; font-weight: 600; letter-spacing: -0.01em; text-overflow: ellipsis; white-space: nowrap; }
+.modpack-selected-head span { color: var(--muted-foreground); font-size: 12px; }
 
-.modpack-install-progress { gap: var(--s-3); }
-.modpack-install-progress .progress [data-slot="progress-indicator"] { background: var(--st-running); }
-.modpack-progress-heading { display: flex; align-items: center; justify-content: space-between; color: var(--text-muted); font-size: var(--fs-xs); }
-.modpack-progress-heading strong { color: var(--text); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-.modpack-install-stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-2); margin-top: var(--s-2); }
-.modpack-install-stage { min-width: 0; display: flex; align-items: center; gap: 6px; color: var(--text-muted); transition: color var(--dur-fast) var(--ease-smooth); }
-.modpack-install-stage > span { width: 20px; height: 20px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid var(--border); border-radius: 50%; background: var(--bg-inset); font-size: 9px; font-weight: 700; transition: border-color var(--dur-fast) var(--ease-smooth), background var(--dur-fast) var(--ease-smooth); }
-.modpack-install-stage small { overflow: hidden; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.modpack-install-stage.active { color: var(--text); }
-.modpack-install-stage.active > span { border-color: var(--st-running); background: color-mix(in oklab, var(--st-running) 16%, transparent); color: var(--st-running); }
-.modpack-install-stage.complete { color: var(--text-secondary); }
-.modpack-install-stage.complete > span { border-color: var(--st-running); background: var(--st-running); color: var(--background); }
-.modpack-install-progress .work-msg { min-height: 18px; margin-top: var(--s-1); font-variant-numeric: tabular-nums; }
+.modpack-version { display: flex; width: 100%; min-height: 54px; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid transparent; border-radius: var(--radius-lg); color: var(--foreground); text-align: left; }
+.modpack-version > span:first-child { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.modpack-version strong { overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.modpack-version small { overflow: hidden; color: var(--muted-foreground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Tags: sentence case pills. The override tints the container and the
+   "auto" pill with --st-running; the plain release-type pill stays muted. */
+.modpack-version-tags { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+.modpack-version-tags em { display: inline-block; height: 18px; padding: 0 7px; line-height: 16px; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--muted-foreground); font-size: 11px; font-style: normal; font-weight: 500; }
+.modpack-version-tags em::first-letter { text-transform: uppercase; }
+.modpack-version-tags em.auto { border-color: color-mix(in oklab, var(--st-running) 30%, var(--border)); }
+.modpack-version-tags em.manual { border-color: color-mix(in oklab, var(--st-warning) 30%, var(--border)); color: var(--st-warning); }
+
+/* Skeletons: fill colour and duration come from the overrides. */
+.modpack-project-skeleton,
+.modpack-version-skeleton { display: flex; min-height: 64px; flex: 0 0 auto; align-items: center; gap: 12px; padding: 8px 10px; }
+.modpack-project-skeleton > i { width: 40px; height: 40px; flex: 0 0 auto; border-radius: var(--radius-lg); }
+.modpack-project-skeleton span { display: grid; flex: 1; gap: 8px; }
+.modpack-project-skeleton span i:first-child,
+.modpack-version-skeleton i:first-child { width: 36%; height: 9px; }
+.modpack-project-skeleton span i:last-child,
+.modpack-version-skeleton i:last-child { width: 68%; height: 7px; }
+.modpack-project-skeleton i,
+.modpack-version-skeleton i { display: block; border-radius: 999px; animation: skeletonPulse 1.4s ease-in-out infinite; }
+.modpack-version-skeleton { min-height: 54px; flex-direction: column; align-items: flex-start; justify-content: center; gap: 8px; }
+
+/* The review reuses the pack logo inside the bordered .review-icon frame. */
+.review-icon .modpack-logo { width: 100%; height: 100%; border: 0; border-radius: 0; background: transparent; }
+
+/* ------------------------------- Install -------------------------------- */
+
+.modpack-install-progress { gap: 12px; }
+.modpack-progress-heading { display: flex; align-items: baseline; justify-content: space-between; color: var(--muted-foreground); font-size: 12px; }
+.modpack-progress-heading strong { color: var(--foreground); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.modpack-install-stages { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.modpack-install-stage { display: flex; min-width: 0; align-items: center; gap: 7px; color: var(--muted-foreground); transition: color 200ms var(--ease-smooth); }
+.modpack-install-stage > span { display: grid; width: 20px; height: 20px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--background); font-size: 11px; font-weight: 500; transition: background-color 200ms var(--ease-smooth), border-color 200ms var(--ease-smooth), color 200ms var(--ease-smooth); }
+.modpack-install-stage small { overflow: hidden; font-size: 12px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.modpack-install-stage.active { color: var(--foreground); }
+.modpack-install-stage.active > span { border-color: var(--foreground); color: var(--foreground); }
+.modpack-install-stage.complete { color: var(--foreground); }
+.modpack-install-stage.complete > span { border-color: var(--foreground); background: var(--foreground); color: var(--background); }
+.modpack-install-progress .work-msg { margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .modpack-project-skeleton i,
+  .modpack-version-skeleton i { animation: none; }
+}

@@ -1,129 +1,126 @@
-.databases-tab {
-  padding: var(--s-5) var(--s-6) var(--s-6);
-  gap: var(--s-4);
-  overflow-y: auto;
-}
+/* Padding and scrolling come from .tab. Sections keep their natural height. */
+.databases-tab { gap: 16px; }
+.databases-tab > * { flex-shrink: 0; }
 
-.databases-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-5); }
-.databases-toolbar h2 { margin: 0 0 4px; font-size: var(--fs-lg); }
-.databases-toolbar p { margin: 0; color: var(--text-muted); font-size: var(--fs-sm); }
-.databases-toolbar-actions, .database-actions { display: flex; align-items: center; gap: var(--s-2); flex-shrink: 0; }
-.docker-ready { display: inline-flex; align-items: center; gap: 6px; margin-top: 7px; color: var(--text-muted); font-size: var(--fs-xs); }
+.databases-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.databases-toolbar h2 { margin: 0 0 2px; color: var(--foreground); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
+.databases-toolbar p { margin: 0; color: var(--muted-foreground); font-size: 12.5px; }
+.databases-toolbar-actions,
+.database-actions { display: flex; flex-shrink: 0; align-items: center; gap: 8px; }
+/* Keep the primary action the same height as its neighbour. */
+.databases-toolbar-actions > .btn { height: 28px; padding: 0 10px; border-radius: var(--radius-md); font-size: 12px; }
+.docker-ready { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; color: var(--muted-foreground); font-size: 12px; }
 .docker-ready > span { width: 6px; height: 6px; border-radius: 50%; background: var(--st-running); }
 
-.docker-diagnostic { display: flex; flex-direction: column; gap: var(--s-3); }
+.docker-diagnostic { display: flex; flex-direction: column; gap: 12px; }
 .docker-diagnostic p { margin: 0; }
-.docker-diagnostic ul { margin: 0; padding-left: 18px; color: var(--text-secondary); }
+.docker-diagnostic ul { margin: 0; padding-left: 18px; color: var(--muted-foreground); list-style: disc; }
 .docker-diagnostic li + li { margin-top: 4px; }
 .docker-diagnostic-facts { display: grid; gap: 6px; }
-.docker-diagnostic-facts > div { min-width: 0; display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: var(--s-2); align-items: baseline; }
-.docker-diagnostic-facts span { color: var(--text-muted); font-size: var(--fs-xs); }
-.docker-diagnostic-facts code { overflow: hidden; color: var(--text-secondary); font-size: var(--fs-xs); text-overflow: ellipsis; white-space: nowrap; }
-.docker-diagnostic details { padding-top: var(--s-2); border-top: 1px solid var(--border-subtle); }
-.docker-diagnostic summary { width: fit-content; cursor: pointer; color: var(--text-secondary); font-size: var(--fs-xs); }
-.docker-diagnostic details code { display: block; margin-top: var(--s-2); overflow-wrap: anywhere; color: var(--text-muted); font-size: var(--fs-xs); }
+.docker-diagnostic-facts > div { display: grid; min-width: 0; grid-template-columns: 80px minmax(0, 1fr); align-items: baseline; gap: 8px; }
+.docker-diagnostic-facts span { color: var(--muted-foreground); font-size: 12px; }
+.docker-diagnostic-facts code { overflow: hidden; color: var(--foreground); font-family: var(--font-mono); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+.docker-diagnostic details { padding-top: 8px; border-top: 1px solid var(--border); }
+.docker-diagnostic summary { width: fit-content; color: var(--muted-foreground); font-size: 12px; transition: color 120ms var(--ease-smooth); }
+.docker-diagnostic summary:hover { color: var(--foreground); }
+.docker-diagnostic details code { display: block; margin-top: 8px; overflow-wrap: anywhere; color: var(--muted-foreground); font-family: var(--font-mono); font-size: 11.5px; }
 
-.database-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.databases-empty { min-height: 290px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface); }
+.database-list { display: flex; flex-direction: column; gap: 12px; }
 
-.database-card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--s-4);
-  padding: var(--s-4);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-surface);
-  transition: border-color var(--dur) var(--ease-smooth), background var(--dur) var(--ease-smooth);
-}
-.database-card:hover { border-color: var(--border-strong); background: var(--bg-surface-2); }
+.databases-empty { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-2xl); }
+.databases-empty .empty { min-height: 260px; }
 
-.database-engine {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-surface-2);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: -.03em;
-  text-transform: lowercase;
-}
-.database-engine-mysql { color: #57a4bf; }
-.database-engine-postgresql { color: #70a6d6; }
-.database-engine-mongodb { color: #63b66b; }
-.database-engine-redis { color: #db6b66; }
+/* Cards are containers for their own buttons, not click targets: no hover
+   fill and no press scale (shadcn-overrides.css adds both to .database-card,
+   and :active would bubble up from every button inside). */
+.database-card { display: flex; align-items: flex-start; gap: 16px; padding: 16px 16px 16px 18px; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--card); }
+.database-list .database-card:hover { border-color: var(--border) !important; background: var(--card) !important; }
+.database-list .database-card:active { transform: none !important; }
 
-.database-content { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--s-3); }
-.database-title-row { display: flex; align-items: center; gap: var(--s-3); }
-.database-title-row > div { min-width: 0; display: flex; align-items: baseline; gap: var(--s-2); }
-.database-title-row strong { color: var(--text); font-size: var(--fs-base); }
-.database-title-row > div > span { color: var(--text-muted); font-size: var(--fs-xs); }
-.database-status { display: inline-flex; align-items: center; gap: 6px; padding: 2px 7px; border-radius: var(--r-pill); background: var(--bg-surface-3); color: var(--text-muted); font-size: 10px; font-weight: 650; text-transform: uppercase; }
-.database-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.database-status.is-running { background: var(--st-running-bg); color: var(--st-running); }
-.database-status.is-error, .database-status.is-missing { background: var(--st-crashed-bg); color: var(--st-crashed); }
+/* Monochrome engine mark; the name next to it says which engine it is. */
+.database-engine { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: color-mix(in oklab, var(--foreground) 3%, transparent); color: var(--foreground); font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: -0.02em; text-transform: lowercase; }
 
-.database-details { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-6); }
-.database-details > div { display: flex; flex-direction: column; gap: 3px; }
-.database-details span { color: var(--text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
-.database-details code { color: var(--text-secondary); font-size: var(--fs-xs); }
+.database-content { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 12px; }
+.database-title-row { display: flex; min-height: 22px; align-items: center; gap: 10px; }
+.database-title-row > div { display: flex; min-width: 0; align-items: baseline; gap: 8px; }
+.database-title-row strong { overflow: hidden; color: var(--foreground); font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; text-overflow: ellipsis; white-space: nowrap; }
+.database-title-row > div > span { flex-shrink: 0; color: var(--muted-foreground); font-size: 12px; }
 
-.database-connection { min-width: 0; display: flex; align-items: center; gap: var(--s-2); }
-.database-connection > code { min-width: 0; flex: 1; overflow: hidden; padding: 7px 9px; border: 1px solid var(--border-subtle); border-radius: var(--r-sm); background: var(--bg-inset); color: var(--text-secondary); font-size: var(--fs-xs); text-overflow: ellipsis; white-space: nowrap; }
-.database-error { margin: 0; color: var(--danger); font-size: var(--fs-xs); }
-.database-actions { align-self: center; }
-.database-delete { color: var(--text-muted); }
-.database-delete:hover:not(:disabled) { color: var(--danger); }
+/* Same shape as .status-badge. */
+.database-status { display: inline-flex; height: 20px; flex-shrink: 0; align-items: center; gap: 6px; padding: 0 8px 0 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted-foreground); font-size: 11.5px; font-weight: 500; line-height: 1; white-space: nowrap; }
+.database-status::before { content: ''; width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--db-dot, color-mix(in oklab, var(--muted-foreground) 70%, transparent)); }
+.database-status.is-running { --db-dot: var(--st-running); color: var(--foreground); }
+.database-status.is-creating { --db-dot: var(--st-updating); color: var(--foreground); }
+.database-status.is-creating::before { animation: pulse 1.6s ease-in-out infinite; }
+.database-status.is-error,
+.database-status.is-missing { --db-dot: var(--destructive); border-color: color-mix(in oklab, var(--destructive) 30%, var(--border)); color: var(--destructive); }
 
-.database-engine-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
-.database-engine-choice { display: grid; grid-template-columns: 38px 1fr; grid-template-rows: auto auto; gap: 2px var(--s-3); padding: var(--s-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface); color: var(--text); text-align: left; transition: border-color var(--dur) var(--ease-smooth), background var(--dur) var(--ease-smooth); }
-.database-engine-choice:hover { border-color: var(--border-strong); background: var(--bg-surface-2); }
-.database-engine-choice.is-selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 2px var(--accent-ring); }
+.database-details { display: flex; flex-wrap: wrap; gap: 12px 28px; }
+.database-details > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.database-details span { color: var(--muted-foreground); font-size: 12px; }
+.database-details code { color: var(--foreground); font-family: var(--font-mono); font-size: 12px; }
+
+.database-connection { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.database-connection > code { min-width: 0; height: 28px; flex: 1; overflow: hidden; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-inset); color: var(--muted-foreground); font-family: var(--font-mono); font-size: 11.5px; line-height: 26px; text-overflow: ellipsis; white-space: nowrap; }
+.database-error { margin: 0; color: var(--destructive); font-size: 12px; line-height: 1.45; }
+.database-actions { align-self: center; gap: 4px; }
+.database-delete { color: var(--muted-foreground); }
+.database-delete:hover:not(:disabled) { background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); }
+.database-delete:disabled { opacity: .4; }
+
+/* Create dialog. Selected state and transitions from shadcn-overrides.css. */
+.database-engine-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.database-engine-choice { display: grid; grid-template-columns: 36px 1fr; grid-template-rows: auto auto; gap: 1px 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); color: var(--foreground); text-align: left; }
+.database-engine-choice:not(.is-selected):hover { border-color: var(--border-strong); background: color-mix(in oklab, var(--foreground) 2.5%, var(--card)); }
+.database-engine-choice:active { transform: scale(0.99); }
 .database-engine-choice .database-engine { grid-row: 1 / 3; }
-.database-engine-choice strong { align-self: end; font-size: var(--fs-sm); }
-.database-engine-choice small { align-self: start; color: var(--text-muted); font-size: var(--fs-xs); }
-.database-create-form { display: flex; flex-direction: column; gap: var(--s-5); }
-.database-local-note { display: flex; align-items: flex-start; gap: var(--s-2); margin: 0; padding: var(--s-3); border: 1px solid var(--border-subtle); border-radius: var(--r-md); background: var(--bg-surface-2); color: var(--text-secondary); font-size: var(--fs-xs); line-height: 1.45; }
-.database-create-progress { display: flex; flex-direction: column; gap: var(--s-3); }
-.database-progress-modal .modal-head { padding-bottom: var(--s-4); }
-.database-progress-modal .modal-body { padding-top: var(--s-5); padding-bottom: var(--s-5); }
-.database-progress-modal .modal-foot { padding-top: var(--s-4); padding-bottom: var(--s-4); }
-.database-progress-head { display: flex; align-items: center; gap: var(--s-3); }
-.database-progress-head .database-engine { width: 40px; height: 40px; }
-.database-progress-head > div:nth-child(2) { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
-.database-progress-head span { color: var(--text-muted); font-size: var(--fs-xs); }
-.database-progress-head strong { overflow: hidden; display: -webkit-box; color: var(--text); font-size: var(--fs-sm); line-height: 1.35; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.database-progress-head b { color: var(--text-secondary); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
-.database-progress-meta { display: flex; justify-content: space-between; color: var(--text-muted); font-size: var(--fs-xs); }
-.database-progress-stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin: var(--s-1) 0 0; padding: 0; list-style: none; }
-.database-progress-stages li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; color: var(--text-faint); font-size: 10px; }
-.database-progress-stages li::before { content: ''; position: absolute; top: 8px; right: 50%; width: 100%; height: 1px; background: var(--border-strong); z-index: 0; }
-.database-progress-stages li:first-child::before { display: none; }
-.database-progress-stages li > span { position: relative; z-index: 1; width: 17px; height: 17px; display: grid; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--bg-surface); color: var(--text-muted); font-size: 9px; }
-.database-progress-stages li.is-active { color: var(--text-secondary); }
-.database-progress-stages li.is-active > span { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-.database-progress-stages li.is-done { color: var(--text-muted); }
-.database-progress-stages li.is-done::before { background: var(--accent); }
-.database-progress-stages li.is-done > span { border-color: var(--accent); background: var(--accent); color: var(--text-on-accent); }
+.database-engine-choice strong { align-self: end; font-size: 13px; font-weight: 500; }
+.database-engine-choice small { align-self: start; color: var(--muted-foreground); font-size: 12px; }
+.database-create-form { display: flex; flex-direction: column; gap: 20px; }
+.database-local-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--foreground) 2%, transparent); color: var(--muted-foreground); font-size: 12.5px; line-height: 1.5; }
+.database-local-note > svg { margin-top: 2px; flex: 0 0 auto; }
 
+.database-create-progress { display: flex; flex-direction: column; gap: 12px; }
+.database-progress-modal .modal-head { padding-bottom: 16px; }
+.database-progress-modal .modal-body { padding-top: 20px; padding-bottom: 20px; }
+.database-progress-modal .modal-foot { padding-top: 12px; padding-bottom: 12px; }
+.database-progress-head { display: flex; align-items: center; gap: 12px; }
+.database-progress-head .database-engine { width: 40px; height: 40px; }
+.database-progress-head > div:nth-child(2) { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
+.database-progress-head span { color: var(--muted-foreground); font-size: 12px; }
+.database-progress-head strong { display: -webkit-box; overflow: hidden; color: var(--foreground); font-size: 13px; font-weight: 500; line-height: 1.4; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.database-progress-head b { color: var(--foreground); font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.database-progress-meta { display: flex; justify-content: space-between; color: var(--muted-foreground); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.database-progress-stages { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin: 4px 0 0; padding: 0; list-style: none; }
+.database-progress-stages li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-faint); font-size: 11px; text-align: center; }
+.database-progress-stages li::before { content: ''; position: absolute; z-index: 0; top: 9px; right: 50%; width: 100%; height: 1px; background: var(--border-strong); transition: background-color var(--dur-slow) var(--ease-smooth); }
+.database-progress-stages li:first-child::before { display: none; }
+.database-progress-stages li > span { position: relative; z-index: 1; display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--popover); color: var(--muted-foreground); font-size: 10px; font-weight: 500; transition: background-color var(--dur-slow) var(--ease-smooth), border-color var(--dur-slow) var(--ease-smooth), color var(--dur-slow) var(--ease-smooth); }
+.database-progress-stages li.is-active { color: var(--foreground); }
+.database-progress-stages li.is-active > span { border-color: var(--foreground); color: var(--foreground); }
+.database-progress-stages li.is-done { color: var(--muted-foreground); }
+.database-progress-stages li.is-done::before,
+.database-progress-stages li.is-active::before { background: color-mix(in oklab, var(--foreground) 50%, transparent); }
+.database-progress-stages li.is-done > span { border-color: var(--foreground); background: var(--foreground); color: var(--background); }
+
+/* Loading placeholders. Colour from shadcn-overrides.css. */
 .database-skeleton { align-items: center; pointer-events: none; }
-.database-skeleton > i:first-child { width: 38px; height: 38px; }
-.database-skeleton > div { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+.database-skeleton > i:first-child { width: 36px; height: 36px; flex: 0 0 auto; border-radius: var(--radius-lg); }
+.database-skeleton > div { display: flex; flex: 1; flex-direction: column; gap: 10px; }
 .database-skeleton > div i:first-child { width: 28%; height: 11px; }
 .database-skeleton > div i:last-child { width: 62%; height: 9px; }
-.database-skeleton > i:last-child { width: 74px; height: 28px; }
-.database-skeleton i { display: block; border-radius: var(--r-sm); background: var(--bg-surface-3); animation: database-pulse 1.5s ease-in-out infinite; }
+.database-skeleton > i:last-child { width: 74px; height: 28px; flex: 0 0 auto; }
+.database-skeleton i { display: block; border-radius: var(--radius-md); animation: skeletonPulse 1.6s ease-in-out infinite; }
 
-@keyframes database-pulse { 50% { opacity: .48; } }
-@media (prefers-reduced-motion: reduce) { .database-skeleton i { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .database-skeleton i,
+  .database-status.is-creating::before { animation: none; }
+}
+
 @media (max-width: 980px) {
   .database-card { flex-wrap: wrap; }
-  .database-actions { width: 100%; padding-left: 54px; }
+  .database-actions { width: 100%; padding-left: 52px; }
   .database-connection { flex-wrap: wrap; }
   .database-connection > code { flex-basis: 100%; }
 }

@@ -1,25 +1,30 @@
+/* Rich MOTD field. Looks and behaves like the other inputs; the formatting
+   toolbar floats above it while text is selected. */
 .motd-editor {
   position: relative;
-  overflow: visible;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  background: color-mix(in oklab, var(--input) 50%, transparent);
-  transition: border-color var(--dur) var(--ease-smooth), box-shadow var(--dur) var(--ease-smooth), background-color var(--dur) var(--ease-smooth);
+  background: color-mix(in oklab, var(--foreground) 2%, transparent);
+  transition:
+    border-color var(--dur) var(--ease-smooth),
+    box-shadow var(--dur) var(--ease-smooth);
 }
 
-.motd-editor:hover { background: color-mix(in oklab, var(--input) 64%, transparent); }
+.motd-editor:hover { border-color: color-mix(in oklab, var(--foreground) 20%, transparent); }
+
 .motd-editor:focus-within {
-  border-color: var(--ring);
-  background: color-mix(in oklab, var(--input) 50%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 25%, transparent);
+  border-color: color-mix(in oklab, var(--foreground) 36%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--foreground) 8%, transparent);
 }
+
+.field.has-error .motd-editor { border-color: var(--destructive); }
 
 .motd-content {
   min-height: 42px;
   max-height: 62px;
-  padding: 10px 58px 10px 12px;
+  padding: 10px 72px 10px 10px;
   overflow: auto;
-  color: var(--text);
+  color: var(--foreground);
   font-size: 13px;
   line-height: 21px;
   white-space: pre-wrap;
@@ -29,39 +34,98 @@
 .motd-content:focus,
 .motd-content:focus-visible { outline: none; }
 
-.motd-content:empty::before { color: var(--text-muted); content: 'A Minecraft Server'; pointer-events: none; }
+.motd-content:empty::before { color: var(--text-faint); content: 'A Minecraft Server'; pointer-events: none; }
+/* Approximates Minecraft's scrambled text; functional, not decoration. */
 .motd-content [data-mc-obfuscated="true"] { letter-spacing: .08em; text-shadow: 1px 0 currentColor; filter: blur(.3px); }
 
-.motd-line-count { position: absolute; right: 10px; bottom: 8px; color: var(--text-muted); font-size: 9px; font-variant-numeric: tabular-nums; pointer-events: none; }
-
-.motd-toolbar {
-  display: flex;
-  width: 100%;
-  max-height: 0;
-  align-items: center;
-  gap: 7px;
-  padding: 0 9px;
-  overflow: hidden;
-  border-bottom: 0 solid transparent;
-  background: color-mix(in oklab, var(--popover) 76%, var(--input));
-  opacity: 0;
-  transform: translateY(-2px);
-  transition: max-height var(--dur) var(--ease-out), padding var(--dur) var(--ease-out), opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), border-width var(--dur-fast);
+.motd-line-count {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  color: var(--text-faint);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
 
-.motd-editor.has-selection .motd-toolbar { max-height: 72px; padding-block: 5px; border-bottom-width: 1px; border-bottom-color: var(--border); opacity: 1; transform: none; }
+/* Floating toolbar. Enter and exit are the same transition reversed
+   (opacity + a 4px rise). visibility flips at the end of the exit so the
+   hidden buttons can't be tabbed to. */
+.motd-toolbar {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: -1px;
+  z-index: 30;
+  display: flex;
+  width: max-content;
+  max-width: calc(100% + 2px);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-xl);
+  background: var(--popover);
+  box-shadow: var(--sh-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transform-origin: bottom left;
+  visibility: hidden;
+  transition:
+    opacity 150ms var(--ease-out),
+    transform 150ms var(--ease-out),
+    visibility 0s linear 150ms;
+}
+
+.motd-editor.has-selection .motd-toolbar {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out),
+    visibility 0s;
+}
+
 .motd-format-actions,
-.motd-colors { display: flex; align-items: center; gap: 3px; }
-.motd-format-actions button { display: grid; width: 26px; height: 26px; place-items: center; border-radius: var(--r-sm); color: var(--text-secondary); }
-.motd-format-actions button:hover,
-.motd-format-actions button.active { background: var(--accent-soft); color: var(--primary); }
-.motd-toolbar-divider { width: 1px; height: 20px; flex: 0 0 auto; background: var(--border); }
-.motd-colors { min-width: 0; flex-wrap: wrap; }
-.motd-color { position: relative; width: 16px; height: 16px; flex: 0 0 auto; border: 1px solid color-mix(in oklab, var(--motd-color) 45%, white 20%); border-radius: 4px; background: var(--motd-color); }
-.motd-color:hover { border-color: white; transform: scale(1.12); }
+.motd-colors { display: flex; align-items: center; gap: 2px; }
+
+.motd-format-actions button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--muted-foreground);
+  transition: background-color 120ms var(--ease-smooth), color 120ms var(--ease-smooth);
+}
+
+.motd-format-actions button:hover { background: var(--bg-hover); color: var(--foreground); }
+.motd-format-actions button.active { background: color-mix(in oklab, var(--foreground) 10%, transparent); color: var(--foreground); }
+
+.motd-toolbar-divider { width: 1px; height: 18px; flex: 0 0 auto; background: var(--border); }
+
+.motd-colors { min-width: 0; flex-wrap: wrap; gap: 3px; padding-inline: 2px; }
+
+/* Swatches keep their own colour (they are the Minecraft palette); hover is a
+   ring, not a scale. */
+.motd-color {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  border: 1px solid color-mix(in oklab, var(--motd-color) 45%, white 20%);
+  border-radius: 4px;
+  background: var(--motd-color);
+  transition: box-shadow 120ms var(--ease-smooth);
+}
+
+.motd-color:hover { box-shadow: 0 0 0 1px var(--popover), 0 0 0 2px var(--foreground); }
+/* Keeps black readable against the dark toolbar. */
 .motd-color-0 { box-shadow: inset 0 0 0 1px #ffffff35; }
+.motd-color-0:hover { box-shadow: inset 0 0 0 1px #ffffff35, 0 0 0 1px var(--popover), 0 0 0 2px var(--foreground); }
 
 @media (prefers-reduced-motion: reduce) {
   .motd-toolbar,
-  .motd-color { transition: none; }
+  .motd-editor.has-selection .motd-toolbar { transform: none; }
 }

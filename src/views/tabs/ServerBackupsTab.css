@@ -1,85 +1,111 @@
-.backups-tab {
-  padding: var(--s-5) var(--s-6) var(--s-6);
-  gap: var(--s-4);
-}
+/* Also imported by BackupsView.tsx, which styles its own table in
+   BackupsView.css. Everything shared-looking below is scoped to the server
+   tab's .backups-row / .backups-panel so it can't leak into that table. */
+
+.tab.backups-tab { gap: 16px; }
 
 .backups-head {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--s-3);
-  flex-shrink: 0;
+  gap: 8px;
 }
 
+/* Sized to its rows, up to the space available; then it scrolls with a
+   sticky header. */
 .backups-panel {
-  flex: 1;
   min-height: 0;
+  flex: 0 1 auto;
   overflow-y: auto;
-  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--r-md);
+  border-radius: var(--radius-2xl);
+  background: var(--card);
 }
 
-.backups-head-row {
+.backups-head-row,
+.backups-row {
   display: grid;
-  grid-template-columns: 1fr 110px 90px 90px 230px;
-  gap: var(--s-4);
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  grid-template-columns: minmax(180px, 1fr) 110px 90px 90px minmax(200px, auto);
+  align-items: center;
+  column-gap: 16px;
+  padding: 0 12px 0 16px;
+}
+
+/* Opaque so rows don't show through while it sticks. Needs to outrank the
+   translucent tint shadcn-overrides.css gives this class. */
+.backups-panel > .backups-head-row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: 36px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in oklab, var(--background) 92%, var(--foreground) 3%) !important;
+  color: var(--muted-foreground);
+  font-size: 12px;
+  font-weight: 400;
 }
 
 .backups-row {
-  display: grid;
-  grid-template-columns: 1fr 110px 90px 90px 230px;
-  gap: var(--s-4);
-  align-items: center;
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
+  min-height: 56px;
+  padding-block: 8px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 120ms var(--ease-smooth);
 }
 
-.backups-row:last-child {
-  border-bottom: none;
-}
+.backups-row:last-child { border-bottom: 0; }
+.backups-row:hover { background: color-mix(in oklab, var(--foreground) 2.5%, transparent); }
 
-.backups-row.is-failed {
-  background: rgba(217, 106, 98, 0.05);
-}
-
-.backups-when {
+.backups-row .backups-when {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
   min-width: 0;
+  flex-direction: column;
+  gap: 1px;
 }
 
-.backups-date {
-  font-size: var(--fs-sm);
+.backups-row .backups-date {
+  color: var(--foreground);
+  font-size: 13px;
   font-weight: 500;
 }
 
-.backups-detail {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
+.backups-row.is-failed .backups-date { color: var(--destructive); }
+
+.backups-row .backups-detail {
+  color: var(--muted-foreground);
+  font-size: 12px;
 }
 
-.backups-notes {
-  font-size: var(--fs-xs);
+.backups-row .backups-notes {
+  overflow: hidden;
+  margin-top: 1px;
   color: var(--text-secondary);
-  font-style: italic;
-  margin-top: 2px;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.backups-cell {
-  font-size: var(--fs-sm);
+.backups-row .backups-cell {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.backups-actions {
+.backups-row .backups-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: var(--s-2);
+  gap: 4px;
+}
+
+.backups-panel > .empty { min-height: 240px; }
+
+@media (max-width: 1000px) {
+  .backups-head-row,
+  .backups-row { grid-template-columns: minmax(160px, 1fr) 100px 80px minmax(190px, auto); }
+  .backups-head-row > :nth-child(3),
+  .backups-row > :nth-child(3) { display: none; }
 }

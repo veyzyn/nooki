@@ -1,223 +1,113 @@
-.plugins-tab {
-  padding: var(--s-5) var(--s-6) var(--s-6);
-  gap: var(--s-4);
-}
+/* Shared by PluginsTab and ModsTab. Padding comes from .tab. */
+.plugins-tab { gap: 16px; }
+.plugins-tab > * { flex-shrink: 0; }
 
-.plugins-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-3);
-  flex-shrink: 0;
-}
+.plugins-toolbar { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 12px; }
+.plugin-toolbar-actions { display: flex; align-items: center; gap: 8px; }
 
-.plugin-toolbar-actions { display: flex; align-items: center; gap: var(--s-2); }
+/* Border, background and focus ring come from shadcn-overrides.css. */
+.plugin-search { display: flex; width: min(360px, 48%); height: 32px; align-items: center; gap: 8px; padding: 0 4px 0 10px; color: var(--muted-foreground); }
+.plugin-search:hover:not(:focus-within) { border-color: color-mix(in oklab, var(--foreground) 20%, transparent) !important; }
+.plugin-search input { min-width: 0; height: 100%; flex: 1; border: 0; outline: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 13px; }
+.plugin-search input::placeholder { color: var(--text-faint); }
+.plugin-search .icon-btn { width: 22px; height: 22px; }
 
-.plugin-search {
-  width: min(380px, 48%);
-  height: 34px;
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  padding: 0 var(--s-2) 0 var(--s-3);
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-inset);
-  color: var(--text-muted);
-}
+.plugin-running-note { padding: 12px 14px; border: 1px solid color-mix(in oklab, var(--st-warning) 26%, var(--border)); border-radius: var(--radius-xl); background: var(--card); color: var(--muted-foreground); font-size: 12.5px; line-height: 1.5; }
 
-.plugin-search:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-ring);
-}
+/* The list sizes to its rows; the tab scrolls, not the panel. */
+.plugins-surface { display: flex; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-2xl); background: var(--card); }
+/* Browse mode before a catalogue has loaded renders no children. */
+.plugins-surface:empty { display: none; }
 
-.plugin-search input {
-  min-width: 0;
-  flex: 1;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  font-size: var(--fs-sm);
-}
-
-.plugin-running-note {
-  flex-shrink: 0;
-  padding: var(--s-3) var(--s-4);
-  border: 1px solid rgba(218, 166, 71, 0.22);
-  border-radius: var(--r-md);
-  background: var(--st-warning-bg);
-  color: var(--text-secondary);
-  font-size: var(--fs-sm);
-}
-
-.plugins-surface {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-surface);
-}
-
-.plugin-row {
-  min-height: 82px;
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border-subtle);
-}
-
+.plugin-row { display: flex; min-height: 64px; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--border); }
 .plugin-row:last-child { border-bottom: 0; }
-.plugin-row.is-disabled .plugin-main { opacity: .62; }
+.plugin-row.is-disabled .plugin-main,
+.plugin-row.is-disabled > .plugin-mark { opacity: .55; }
 
-.plugin-mark {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-surface-2);
-  color: var(--accent);
-}
+/* Rows are scanned constantly: a faint colour-only hover. Overrides the
+   stronger surface hover in shadcn-overrides.css, which is meant for cards. */
+.plugins-surface .plugin-row:hover { border-color: var(--border) !important; background: color-mix(in oklab, var(--foreground) 2.5%, transparent) !important; }
+.plugins-surface .plugin-skeleton:hover { background: transparent !important; }
 
-.plugin-project-mark {
-  position: relative;
-  overflow: hidden;
-  background: var(--accent-soft);
-  border-color: rgba(95, 184, 127, .2);
-  font-size: var(--fs-md);
-  font-weight: 700;
-}
+.plugin-mark { display: grid; width: 36px; height: 36px; flex: 0 0 auto; place-items: center; border: 1px solid var(--border); border-radius: var(--radius-lg); background: color-mix(in oklab, var(--foreground) 3%, transparent); color: var(--muted-foreground); }
+.plugin-project-mark { position: relative; overflow: hidden; color: var(--foreground); font-size: 14px; font-weight: 600; }
+.plugin-project-mark img { width: 100%; height: 100%; object-fit: cover; }
+.plugin-logo-skeleton { position: absolute; inset: 0; }
 
-.plugin-project-mark img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+.plugin-main { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 1px; line-height: 1.4; }
+.plugin-name-line { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.plugin-name { overflow: hidden; color: var(--foreground); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.plugin-version,
+.plugin-author { flex-shrink: 0; color: var(--muted-foreground); font-size: 12px; white-space: nowrap; }
 
-.plugin-logo-skeleton {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, var(--bg-surface-2), var(--bg-surface-3), var(--bg-surface-2));
-  background-size: 200% 100%;
-  animation: plugin-shimmer 1.5s ease-in-out infinite;
-}
+.plugin-source-tag,
+.plugin-disabled-tag { display: inline-flex; height: 20px; flex-shrink: 0; align-items: center; padding: 0 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted-foreground); font-size: 11px; font-weight: 500; line-height: 1; }
+.plugin-disabled-tag { border-color: var(--border-strong); text-transform: capitalize; }
 
-.plugin-main {
-  min-width: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.plugin-name-line { display: flex; align-items: baseline; gap: var(--s-2); min-width: 0; }
-.plugin-name { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
-.plugin-version, .plugin-author { color: var(--text-muted); font-size: var(--fs-xs); }
-
-.plugin-disabled-tag {
-  padding: 1px 6px;
-  border-radius: var(--r-pill);
-  background: var(--bg-surface-3);
-  color: var(--text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .03em;
-}
-
-.plugin-source-tag {
-  padding: 1px 6px;
-  border-radius: var(--r-pill);
-  background: color-mix(in oklab, var(--st-running) 14%, transparent);
-  color: color-mix(in oklab, var(--st-running) 82%, var(--foreground));
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .03em;
-}
-
-.plugin-installed-btn:disabled {
-  opacity: .7;
-  color: var(--text-muted);
-}
+.plugin-installed-btn:disabled { color: var(--muted-foreground); opacity: .7; }
 
 .plugin-description,
-.plugin-meta {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.plugin-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plugin-description { color: var(--muted-foreground); font-size: 12.5px; }
+.plugin-meta { color: var(--text-faint); font-size: 11.5px; }
 
-.plugin-description { color: var(--text-secondary); font-size: var(--fs-sm); }
-.plugin-meta { color: var(--text-muted); font-size: var(--fs-xs); }
+.plugin-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
 
-.plugin-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  flex: 0 0 auto;
-}
+/* Destructive actions in a row stay quiet until hovered. */
+.plugin-actions .icon-btn.danger-text { color: var(--muted-foreground); }
+.plugin-actions .icon-btn.danger-text:hover:not(:disabled) { background: color-mix(in oklab, var(--destructive) 10%, transparent); color: var(--destructive); }
+.plugin-actions .icon-btn:disabled { opacity: .4; }
 
-.plugin-install-progress {
-  width: min(320px, 60%);
-  height: 3px;
-  margin-top: 4px;
-  overflow: hidden;
-  border-radius: var(--r-pill);
-  background: var(--bg-surface-3);
-}
+/* Enable/disable toggle used in the installed list (plain button, not the
+   shadcn Switch). Thumb travels with ease-out; the track colour follows. */
+.plugin-actions .switch { position: relative; display: inline-flex; width: 30px; height: 18px; flex: 0 0 auto; align-items: center; padding: 2px; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 14%, transparent); transition: background-color 150ms var(--ease-smooth), box-shadow 150ms var(--ease-smooth); }
+.plugin-actions .switch.on { background: var(--foreground); }
+.plugin-actions .switch:disabled { opacity: .4; }
+.plugin-actions .switch:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--background), 0 0 0 4px color-mix(in oklab, var(--ring) 70%, transparent); }
+.plugin-actions .switch-knob { display: block; width: 14px; height: 14px; border-radius: 50%; background: var(--foreground); transition: transform 180ms var(--ease-out), background-color 150ms var(--ease-smooth); }
+.plugin-actions .switch.on .switch-knob { transform: translateX(12px); background: var(--background); }
 
-.plugin-install-progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--accent);
-  transition: width 160ms ease-out;
-}
+/* Width is set inline by the tab; it steps rather than animating layout. */
+.plugin-install-progress { width: min(320px, 60%); height: 3px; margin-top: 6px; overflow: hidden; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 9%, transparent); }
+.plugin-install-progress span { display: block; height: 100%; border-radius: inherit; background: var(--foreground); }
 
-.plugin-load-more { display: flex; justify-content: center; padding: var(--s-4); }
+.plugin-load-more { display: flex; justify-content: center; padding: 12px 16px; }
 
+/* Loading rows. Colour comes from shadcn-overrides.css. */
 .plugin-skeleton { pointer-events: none; }
-.skeleton-block, .skeleton-copy i {
-  display: block;
-  border-radius: var(--r-sm);
-  background: linear-gradient(90deg, var(--bg-surface-2), var(--bg-surface-3), var(--bg-surface-2));
-  background-size: 200% 100%;
-  animation: plugin-shimmer 1.5s ease-in-out infinite;
-}
-.skeleton-icon { width: 38px; height: 38px; }
-.skeleton-button { width: 66px; height: 30px; }
-.skeleton-copy { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.skeleton-block,
+.skeleton-copy i { display: block; border-radius: var(--radius-sm); }
+.skeleton-block,
+.skeleton-copy i,
+.plugin-logo-skeleton { animation: skeletonPulse 1.6s ease-in-out infinite; }
+.skeleton-icon { width: 36px; height: 36px; flex: 0 0 auto; border-radius: var(--radius-lg); }
+.skeleton-button { width: 66px; height: 28px; flex: 0 0 auto; }
+.skeleton-copy { display: flex; flex: 1; flex-direction: column; gap: 8px; }
 .skeleton-copy i:first-child { width: 34%; height: 11px; }
 .skeleton-copy i:last-child { width: 68%; height: 9px; }
 
-@keyframes plugin-shimmer { to { background-position: -200% 0; } }
-
 @media (prefers-reduced-motion: reduce) {
   .skeleton-block, .skeleton-copy i, .plugin-logo-skeleton { animation: none; }
-  .plugin-install-progress span { transition: none; }
+  .plugin-actions .switch-knob { transition: background-color 150ms var(--ease-smooth); }
 }
 
-.manual-mod-download { display: flex; flex-direction: column; gap: var(--s-4); }
-.manual-mod-status { display: flex; align-items: flex-start; gap: var(--s-3); padding: var(--s-3); border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-surface-2); }
-.manual-mod-status div { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.manual-mod-status strong { color: var(--text); font-size: var(--fs-sm); }
-.manual-mod-status span { color: var(--text-secondary); font-size: var(--fs-sm); line-height: 1.45; }
-.manual-mod-file { display: grid; gap: 5px; }
-.manual-mod-file > span { color: var(--text-muted); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .04em; }
-.manual-mod-file code { overflow: hidden; padding: var(--s-2) var(--s-3); border: 1px solid var(--border-subtle); border-radius: var(--r-sm); background: var(--bg-inset); color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+/* ModsTab: manual download dialog. */
+.manual-mod-download { display: flex; flex-direction: column; gap: 16px; }
+.manual-mod-status { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--foreground) 2%, transparent); }
+.manual-mod-status .spinner { margin-top: 1px; color: var(--muted-foreground); }
+.manual-mod-status div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.manual-mod-status strong { color: var(--foreground); font-size: 13px; font-weight: 500; }
+.manual-mod-status span { color: var(--muted-foreground); font-size: 12.5px; line-height: 1.5; }
+.manual-mod-file { display: grid; gap: 6px; }
+.manual-mod-file > span { color: var(--muted-foreground); font-size: 12px; }
+.manual-mod-file code { overflow: hidden; padding: 7px 10px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-inset); color: var(--foreground); font-family: var(--font-mono); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
-.addon-version-dialog { display: flex; min-height: 94px; flex-direction: column; gap: var(--s-4); }
-.addon-version-loading { display: flex; min-height: 94px; align-items: center; justify-content: center; gap: var(--s-2); color: var(--text-secondary); font-size: var(--fs-sm); }
-.addon-version-error { padding: var(--s-3); border: 1px solid color-mix(in oklab, var(--destructive) 30%, var(--border)); border-radius: var(--r-md); background: color-mix(in oklab, var(--destructive) 9%, var(--card)); color: var(--destructive); font-size: var(--fs-sm); line-height: 1.45; }
-.addon-version-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); overflow: hidden; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--card); }
-.addon-version-details > span { display: flex; min-width: 0; flex-direction: column; gap: 3px; padding: var(--s-3); }
+/* AddonVersionDialog (plugins and mods). */
+.addon-version-dialog { display: flex; min-height: 96px; flex-direction: column; gap: 16px; }
+.addon-version-loading { display: flex; min-height: 96px; align-items: center; justify-content: center; gap: 8px; color: var(--muted-foreground); font-size: 12.5px; }
+.addon-version-error { padding: 12px 14px; border: 1px solid color-mix(in oklab, var(--destructive) 30%, var(--border)); border-radius: var(--radius-xl); background: color-mix(in oklab, var(--destructive) 5%, var(--card)); color: var(--destructive); font-size: 12.5px; line-height: 1.5; }
+.addon-version-details { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-xl); background: var(--card); }
+.addon-version-details > span { display: flex; min-width: 0; flex-direction: column; gap: 4px; padding: 12px 14px; }
 .addon-version-details > span + span { border-left: 1px solid var(--border); }
-.addon-version-details small { color: var(--text-muted); font-size: var(--fs-xs); }
-.addon-version-details strong { overflow: hidden; color: var(--text); font-size: var(--fs-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.addon-version-details small { color: var(--muted-foreground); font-size: 12px; }
+.addon-version-details strong { overflow: hidden; color: var(--foreground); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }

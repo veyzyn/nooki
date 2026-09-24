@@ -293,8 +293,6 @@
 .log-line:hover { background: color-mix(in oklab, var(--foreground) 4%, transparent) !important; }
 
 .settings-group-head,
-.logs-head-row,
-.backups-head-row,
 .world-list {
   background: color-mix(in oklab, var(--foreground) 2%, transparent) !important;
 }
